@@ -11,8 +11,8 @@ android {
         applicationId = "com.silverguard.app"
         minSdk = 23
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
     }
 
     buildFeatures {
@@ -45,4 +45,6 @@ dependencies {
 
     // Bundled Chinese OCR model: can work on-device after the app is installed.
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+
+    testImplementation("junit:junit:4.13.2")
 }

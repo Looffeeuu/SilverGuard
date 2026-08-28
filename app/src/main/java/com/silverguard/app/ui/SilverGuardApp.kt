@@ -57,6 +57,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.silverguard.app.data.OfficialSources
 import com.silverguard.app.engine.RiskAnalyzer
+import com.silverguard.app.model.ProductInfo
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
 
@@ -299,7 +300,7 @@ fun SilverGuardApp() {
                 DisclaimerCard()
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    text = "银龄安心查 · Android MVP 0.2.1",
+                    text = "银龄安心查 · Android MVP 0.2.2",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 12.sp
@@ -510,13 +511,11 @@ private fun ResultSection(
     }
 
     Spacer(Modifier.height(12.dp))
-    InfoCard("① 我识别到了什么？") {
-        Text("类别：${analysis.category}", fontWeight = FontWeight.Bold)
-        analysis.extractedModel?.let { Text("疑似型号：$it") }
-        analysis.extractedPrice?.let { Text("疑似价格：$it") }
-        if (analysis.extractedModel == null && analysis.extractedPrice == null) {
-            Text("暂未自动提取到明确型号或价格。", color = Muted)
-        }
+    InfoCard("① 商品信息（自动整理）") {
+        ProductInfoSection(
+            category = analysis.category,
+            productInfo = analysis.productInfo
+        )
     }
 
     Spacer(Modifier.height(12.dp))
@@ -604,6 +603,82 @@ private fun ResultSection(
         ) {
             Text("重新查一个")
         }
+    }
+}
+
+@Composable
+private fun ProductInfoSection(
+    category: String,
+    productInfo: ProductInfo
+) {
+    Surface(
+        color = SoftGreen,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = "已整理 ${productInfo.detectedCount}/${ProductInfo.FIELD_COUNT} 项包装信息",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            color = Ink,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+
+    ProductInfoRow("商品名称", productInfo.name)
+    ProductInfoRow("品牌", productInfo.brand)
+    ProductInfoRow("生产企业", productInfo.manufacturer)
+    ProductInfoRow("型号", productInfo.model)
+    ProductInfoRow("规格/净含量", productInfo.specification)
+    ProductInfoRow("注册/备案号", productInfo.registrationNumber)
+    ProductInfoRow("价格", productInfo.price)
+    ProductInfoRow("初步分类", category)
+
+    val missingKeyFields = buildList {
+        if (productInfo.name == null) add("商品名称")
+        if (productInfo.manufacturer == null) add("生产企业")
+        if (productInfo.registrationNumber == null) add("注册/备案号")
+    }
+
+    Spacer(Modifier.height(8.dp))
+    Text(
+        text = if (missingKeyFields.isEmpty()) {
+            "关键字段已找到，请对照商品包装原文再次确认。"
+        } else {
+            "建议补拍包装正反面，继续寻找：${missingKeyFields.joinToString("、")}。"
+        },
+        color = Muted,
+        fontSize = 13.sp,
+        lineHeight = 20.sp
+    )
+    Text(
+        text = "以上内容由文字规则自动整理，不代表官方记录或资质核验结果。",
+        color = Muted,
+        fontSize = 13.sp,
+        lineHeight = 20.sp
+    )
+}
+
+@Composable
+private fun ProductInfoRow(label: String, value: String?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.width(108.dp),
+            color = Muted,
+            fontSize = 14.sp
+        )
+        Text(
+            text = value ?: "未识别",
+            modifier = Modifier.weight(1f),
+            color = if (value == null) Muted else Ink,
+            fontWeight = if (value == null) FontWeight.Normal else FontWeight.SemiBold,
+            lineHeight = 21.sp
+        )
     }
 }
 
@@ -736,15 +811,31 @@ private fun shareAnalysis(context: Context, analysis: RiskAnalysis) {
         analysis.flags.joinToString("、") { "${it.type}（${it.matched}）" }
     }
 
+    val info = analysis.productInfo
+    val productDetails = listOfNotNull(
+        info.name?.let { "商品名称：$it" },
+        info.brand?.let { "品牌：$it" },
+        info.manufacturer?.let { "生产企业：$it" },
+        info.model?.let { "型号：$it" },
+        info.specification?.let { "规格/净含量：$it" },
+        info.registrationNumber?.let { "注册/备案号：$it" },
+        info.price?.let { "价格：$it" }
+    ).ifEmpty { listOf("暂未提取到明确的包装字段") }
+        .joinToString("\n")
+
     val report = """
         【银龄安心查 · 消费风险初筛】
         ${analysis.title}
         风险分：${analysis.score}/100
         初步分类：${analysis.category}
+
+        【自动整理的商品信息】
+        $productDetails
+
         风险信号：$flags
 
         建议：付款前再到国家药监局、市场监管总局等官方平台核验具体资质。
-        注：这是风险初筛，不是行政认定或医学诊断。
+        注：商品信息来自文字自动提取，请对照包装核对；风险结果不是行政认定或医学诊断。
     """.trimIndent()
 
     val intent = Intent(Intent.ACTION_SEND).apply {

@@ -11,6 +11,31 @@ data class RiskFlag(
     val weight: Int
 )
 
+data class ProductInfo(
+    val name: String? = null,
+    val brand: String? = null,
+    val manufacturer: String? = null,
+    val model: String? = null,
+    val specification: String? = null,
+    val registrationNumber: String? = null,
+    val price: String? = null
+) {
+    val detectedCount: Int
+        get() = listOf(
+            name,
+            brand,
+            manufacturer,
+            model,
+            specification,
+            registrationNumber,
+            price
+        ).count { !it.isNullOrBlank() }
+
+    companion object {
+        const val FIELD_COUNT = 7
+    }
+}
+
 data class RiskAnalysis(
     val rawText: String,
     val category: String,
@@ -18,8 +43,7 @@ data class RiskAnalysis(
     val level: RiskLevel,
     val title: String,
     val flags: List<RiskFlag>,
-    val extractedPrice: String? = null,
-    val extractedModel: String? = null
+    val productInfo: ProductInfo = ProductInfo()
 )
 
 data class OfficialSource(

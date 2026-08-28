@@ -110,8 +110,7 @@ object RiskAnalyzer {
             level = level,
             title = title,
             flags = flags,
-            extractedPrice = extractPrice(clean),
-            extractedModel = extractModel(clean)
+            productInfo = ProductInfoExtractor.extract(clean)
         )
     }
 
@@ -125,21 +124,4 @@ object RiskAnalyzer {
         else -> "一般消费品"
     }
 
-    private fun extractPrice(text: String): String? {
-        val patterns = listOf(
-            Regex("[¥￥]\\s*(\\d+(?:\\.\\d{1,2})?)"),
-            Regex("(?:售价|现价|价格)[:：\\s]*(\\d+(?:\\.\\d{1,2})?)\\s*元?")
-        )
-        for (pattern in patterns) {
-            val match = pattern.find(text)
-            val value = match?.groupValues?.getOrNull(1)
-            if (!value.isNullOrBlank()) return "¥$value"
-        }
-        return null
-    }
-
-    private fun extractModel(text: String): String? {
-        val match = Regex("(?:型号|Model)[:：\\s]*([A-Za-z0-9_-]{2,24})", RegexOption.IGNORE_CASE).find(text)
-        return match?.groupValues?.getOrNull(1)
-    }
 }
