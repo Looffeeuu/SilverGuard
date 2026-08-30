@@ -83,7 +83,7 @@ class EcommerceHttpClient(
     companion object {
         const val DEFAULT_MAX_BODY_BYTES = 3 * 1024 * 1024
         private const val USER_AGENT =
-            "SilverGuard/0.3.2 (Android; public product information reader)"
+            "SilverGuard/0.3.4 (Android; public product information reader)"
 
         private fun defaultClient() = OkHttpClient.Builder()
             .cookieJar(CookieJar.NO_COOKIES)

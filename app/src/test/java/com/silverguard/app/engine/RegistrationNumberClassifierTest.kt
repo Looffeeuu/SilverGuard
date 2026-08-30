@@ -17,6 +17,15 @@ class RegistrationNumberClassifierTest {
     }
 
     @Test
+    fun ignoresChineseFieldLabelBeforeMedicalDeviceNumber() {
+        val candidate = RegistrationNumberClassifier.findCandidate(
+            "注册证编号：国械注准XXXXXXXX"
+        )
+
+        assertEquals("国械注准XXXXXXXX", candidate)
+    }
+
+    @Test
     fun recognizesDrugApprovalNumber() {
         val result = RegistrationNumberClassifier.classify("国药准字H20261234")
 

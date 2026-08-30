@@ -1,6 +1,7 @@
 package com.silverguard.app.data
 
 import com.silverguard.app.model.OfficialSource
+import com.silverguard.app.model.OfficialSourceRole
 import com.silverguard.app.model.RegistrationType
 
 /**
@@ -14,7 +15,9 @@ object OfficialSources {
         organization = "国家药品监督管理局",
         url = "https://www.nmpa.gov.cn/zwfwqjd/index.html?type=pc",
         supportedType = RegistrationType.MEDICAL_DEVICE,
-        description = "查询境内、进口医疗器械注册与备案信息"
+        description = "查询境内、进口医疗器械注册与备案信息",
+        role = OfficialSourceRole.PRIMARY,
+        queryHint = "复制编号后，选择境内或进口医疗器械查询，再用注册 / 备案号搜索。"
     )
 
     val medicalDeviceUdi = OfficialSource(
@@ -23,7 +26,9 @@ object OfficialSources {
         organization = "国家药品监督管理局",
         url = "https://udi.nmpa.gov.cn/",
         supportedType = RegistrationType.MEDICAL_DEVICE,
-        description = "核对医疗器械唯一标识及关联产品信息"
+        description = "辅助核对医疗器械唯一标识、产品名称、企业和型号",
+        role = OfficialSourceRole.SUPPLEMENTARY,
+        queryHint = "适合核对包装上的 UDI、产品名称、企业和型号，不替代注册 / 备案信息查询。"
     )
 
     val nmpaDrug = OfficialSource(
@@ -32,7 +37,9 @@ object OfficialSources {
         organization = "国家药品监督管理局",
         url = "https://www.nmpa.gov.cn/zwfwqjd/index.html?type=pc",
         supportedType = RegistrationType.DRUG_APPROVAL,
-        description = "核对国产、进口药品及批准文号信息"
+        description = "核对国产、进口药品及批准文号信息",
+        role = OfficialSourceRole.PRIMARY,
+        queryHint = "复制批准文号后，选择国产或进口药品查询，再用批准文号搜索。"
     )
 
     val healthFood = OfficialSource(
@@ -41,7 +48,9 @@ object OfficialSources {
         organization = "国家市场监督管理总局",
         url = "https://ypzsx.gsxt.gov.cn/specialfood/",
         supportedType = RegistrationType.HEALTH_FOOD,
-        description = "查询保健食品注册、备案及产品信息"
+        description = "查询保健食品注册、备案及产品信息",
+        role = OfficialSourceRole.PRIMARY,
+        queryHint = "复制注册 / 备案号后，在特殊食品产品查询中核对产品和企业信息。"
     )
 
     val samrService = OfficialSource(
@@ -50,7 +59,9 @@ object OfficialSources {
         organization = "国家市场监督管理总局",
         url = "https://zwfw.samr.gov.cn/",
         supportedType = RegistrationType.UNKNOWN,
-        description = "查询特殊食品、广告、召回和市场监管公开信息"
+        description = "查询特殊食品、广告、召回和市场监管公开信息",
+        role = OfficialSourceRole.SUPPLEMENTARY,
+        queryHint = "当前编号类型不明确，请先核对商品类别，再选择相应的官方查询服务。"
     )
 
     val nmpaCosmetic = OfficialSource(
@@ -59,7 +70,9 @@ object OfficialSources {
         organization = "国家药品监督管理局",
         url = "https://www.nmpa.gov.cn/zwfwqjd/index.html?type=pc",
         supportedType = RegistrationType.COSMETIC,
-        description = "查询特殊化妆品注册及相关备案信息"
+        description = "查询特殊化妆品注册及相关备案信息",
+        role = OfficialSourceRole.PRIMARY,
+        queryHint = "复制编号后，选择特殊化妆品注册信息查询，再核对产品和注册人。"
     )
 
     val all: List<OfficialSource> = listOf(

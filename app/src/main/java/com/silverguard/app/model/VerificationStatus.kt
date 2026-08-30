@@ -4,9 +4,10 @@ enum class VerificationStatus(val displayName: String) {
     NOT_READY("信息不足，暂时无法核验"),
     READY("信息已具备，等待核验"),
     MANUAL_REQUIRED("需要前往官方平台人工核验"),
+    MANUAL_REVIEWED("已记录人工核对结果"),
     VERIFIED("已取得官方数据匹配结果"),
-    NOT_FOUND("官方数据中暂未找到匹配记录"),
-    ERROR("官方查询发生异常")
+    NOT_FOUND("人工查询暂未找到记录"),
+    ERROR("官方页面暂时无法查询")
 }
 
 enum class VerificationField(val displayName: String) {

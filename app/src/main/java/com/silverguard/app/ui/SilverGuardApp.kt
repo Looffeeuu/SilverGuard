@@ -1,10 +1,13 @@
 package com.silverguard.app.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -56,6 +59,8 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.silverguard.app.engine.EcommerceLinkParser
+import com.silverguard.app.engine.ManualVerificationRecorder
+import com.silverguard.app.engine.OfficialScreenshotAnalyzer
 import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.ShareReportBuilder
 import com.silverguard.app.model.RiskAnalysis
@@ -80,6 +85,8 @@ fun SilverGuardApp() {
     var analysisJob by remember { mutableStateOf<Job?>(null) }
     var analysisRequestVersion by remember { mutableStateOf(0) }
     var ocrMessage by remember { mutableStateOf("选择截图后可在手机本地识别文字") }
+    var isOfficialScreenshotOcrRunning by remember { mutableStateOf(false) }
+    var officialScreenshotMessage by remember { mutableStateOf("") }
     val detectedLinkInfo = remember(inputText) { EcommerceLinkParser.parse(inputText) }
 
     fun cancelProductRead() {
@@ -93,6 +100,8 @@ fun SilverGuardApp() {
         val requestText = text.trim()
         if (requestText.isBlank()) return
         cancelProductRead()
+        isOfficialScreenshotOcrRunning = false
+        officialScreenshotMessage = ""
         focusManager.clearFocus(force = true)
         val requestId = analysisRequestVersion
         val linkInfo = EcommerceLinkParser.parse(requestText)
@@ -142,6 +151,57 @@ fun SilverGuardApp() {
                     ocrMessage = "识别失败：${it.message ?: "未知错误"}"
                 }
             )
+        }
+    }
+
+    val officialScreenshotPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        val current = analysis
+        if (uri != null && current?.verification?.manualRecord != null) {
+            isOfficialScreenshotOcrRunning = true
+            officialScreenshotMessage = "正在本地识别官方查询截图…"
+            val requestedRegistration = current.verification.registration
+                .normalizedNumber
+                .ifBlank { current.verification.registration.rawNumber }
+            runChineseOcr(
+                context = context,
+                uri = uri,
+                onSuccess = { text ->
+                    val latest = analysis
+                    val latestRegistration = latest?.let { latestAnalysis ->
+                        latestAnalysis.verification.registration.normalizedNumber.ifBlank {
+                            latestAnalysis.verification.registration.rawNumber
+                        }
+                    }
+                    if (
+                        latest != null &&
+                        latest.verification.manualRecord != null &&
+                        latestRegistration == requestedRegistration
+                    ) {
+                        val review = OfficialScreenshotAnalyzer.analyze(
+                            text,
+                            latest.verification
+                        )
+                        analysis = latest.copy(
+                            verification = ManualVerificationRecorder.attachScreenshotReview(
+                                latest.verification,
+                                review
+                            )
+                        )
+                        officialScreenshotMessage = review.summary
+                    } else {
+                        officialScreenshotMessage = "商品信息已经变化，请重新选择官方查询截图。"
+                    }
+                    isOfficialScreenshotOcrRunning = false
+                },
+                onError = { error ->
+                    isOfficialScreenshotOcrRunning = false
+                    officialScreenshotMessage = "截图识别失败：${error.message ?: "未知错误"}"
+                }
+            )
+        } else if (uri != null) {
+            officialScreenshotMessage = "请先打开一个官方查询入口，再导入查询结果截图。"
         }
     }
 
@@ -318,7 +378,43 @@ fun SilverGuardApp() {
                     Spacer(Modifier.height(24.dp))
                     ResultSection(
                         analysis = current,
-                        onOpenOfficialSource = { openUrl(context, it) },
+                        onOpenOfficialSource = { source ->
+                            val updatedVerification = ManualVerificationRecorder.markSourceOpened(
+                                current.verification,
+                                source
+                            )
+                            analysis = current.copy(verification = updatedVerification)
+                            officialScreenshotMessage = "查询完成并截图后，请返回这里继续。"
+                            val registrationNumber = current.verification.registration
+                                .normalizedNumber
+                                .ifBlank { current.verification.registration.rawNumber }
+                            if (registrationNumber.isNotBlank()) {
+                                copyToClipboard(context, "注册 / 备案号", registrationNumber)
+                            }
+                            openUrl(context, source.url)
+                        },
+                        onSelectOfficialScreenshot = {
+                            officialScreenshotPicker.launch("image/*")
+                        },
+                        isOfficialScreenshotOcrRunning = isOfficialScreenshotOcrRunning,
+                        officialScreenshotMessage = officialScreenshotMessage,
+                        onRecordSearchOutcome = { outcome ->
+                            analysis = current.copy(
+                                verification = ManualVerificationRecorder.recordSearchOutcome(
+                                    current.verification,
+                                    outcome
+                                )
+                            )
+                        },
+                        onRecordFinding = { field, status ->
+                            analysis = current.copy(
+                                verification = ManualVerificationRecorder.recordFinding(
+                                    current.verification,
+                                    field,
+                                    status
+                                )
+                            )
+                        },
                         onOpenProductPage = { openUrl(context, it) },
                         onSelectScreenshot = {
                             cancelProductRead()
@@ -330,6 +426,8 @@ fun SilverGuardApp() {
                             inputText = ""
                             selectedUri = null
                             capturedBitmap = null
+                            isOfficialScreenshotOcrRunning = false
+                            officialScreenshotMessage = ""
                             ocrMessage = "拍商品或选择截图后，可在手机本地识别文字"
                         }
                     )
@@ -339,7 +437,7 @@ fun SilverGuardApp() {
                 DisclaimerCard()
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "银龄安心查 · Android MVP 0.3.2",
+                    "银龄安心查 · Android MVP 0.3.4",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 12.sp
@@ -492,7 +590,7 @@ private fun DisclaimerCard() {
         shape = RoundedCornerShape(18.dp)
     ) {
         Text(
-            "重要说明：本版只尝试读取无需登录即可公开访问的淘宝 / 天猫基础信息，不保存账号或 Cookie。平台页面信息不代表商品真假或官方核验结果。",
+            "重要说明：本版只尝试读取无需登录即可公开访问的淘宝 / 天猫基础信息。官方查询截图只在手机本地 OCR，不上传、不保存账号或 Cookie；截图辅助比对不代表官方认证。",
             modifier = Modifier.padding(16.dp),
             color = Muted,
             lineHeight = 21.sp,
@@ -552,6 +650,12 @@ private fun runChineseOcr(
 
 private fun openUrl(context: Context, url: String) {
     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+}
+
+private fun copyToClipboard(context: Context, label: String, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+    Toast.makeText(context, "编号已复制，可粘贴到官方查询框", Toast.LENGTH_SHORT).show()
 }
 
 private fun shareAnalysis(context: Context, analysis: RiskAnalysis) {

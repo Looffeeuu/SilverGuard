@@ -29,7 +29,12 @@ object VerificationPlanner {
             } else {
                 emptyList()
             },
-            checkedAt = null
+            checkedAt = null,
+            checklist = if (readiness.ready) {
+                VerificationChecklistFactory.create(productInfo, classification)
+            } else {
+                emptyList()
+            }
         )
     }
 }

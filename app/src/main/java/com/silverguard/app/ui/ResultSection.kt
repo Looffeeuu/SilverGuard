@@ -25,13 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.silverguard.app.model.ProductInfo
 import com.silverguard.app.model.ProductDetailParseStatus
+import com.silverguard.app.model.EvidenceMatchStatus
+import com.silverguard.app.model.OfficialSearchOutcome
+import com.silverguard.app.model.OfficialSource
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
+import com.silverguard.app.model.VerificationEvidenceField
+import com.silverguard.app.model.VerificationStatus
 
 @Composable
 internal fun ResultSection(
     analysis: RiskAnalysis,
-    onOpenOfficialSource: (String) -> Unit,
+    onOpenOfficialSource: (OfficialSource) -> Unit,
+    onSelectOfficialScreenshot: () -> Unit,
+    isOfficialScreenshotOcrRunning: Boolean,
+    officialScreenshotMessage: String,
+    onRecordSearchOutcome: (OfficialSearchOutcome) -> Unit,
+    onRecordFinding: (VerificationEvidenceField, EvidenceMatchStatus) -> Unit,
     onOpenProductPage: (String) -> Unit,
     onSelectScreenshot: () -> Unit,
     onReset: () -> Unit
@@ -75,6 +85,11 @@ internal fun ResultSection(
     VerificationCard(
         result = analysis.verification,
         onOpenOfficialSource = onOpenOfficialSource,
+        onSelectOfficialScreenshot = onSelectOfficialScreenshot,
+        isOfficialScreenshotOcrRunning = isOfficialScreenshotOcrRunning,
+        officialScreenshotMessage = officialScreenshotMessage,
+        onRecordSearchOutcome = onRecordSearchOutcome,
+        onRecordFinding = onRecordFinding,
         onRetry = onReset
     )
 
@@ -300,6 +315,19 @@ private fun InfoCard(
 }
 
 private fun riskSummary(analysis: RiskAnalysis): String {
+    val verification = analysis.verification
+    if (verification.manualRecord?.hasMismatch == true) {
+        return "人工核对发现包装信息与官方页面存在不一致。建议暂停付款，先请家人一起复核编号、企业和登记用途。"
+    }
+    if (verification.hasUnresolvedScreenshotMismatch) {
+        return "官方查询截图辅助比对发现可能不一致。OCR 可能看错字，请暂停付款并在下方逐项人工确认。"
+    }
+    if (verification.status == VerificationStatus.NOT_FOUND) {
+        return "人工查询暂未找到登记记录。请先检查编号和查询类别；暂时没找到不等于假货。"
+    }
+    if (verification.status == VerificationStatus.ERROR) {
+        return "官方页面本次无法正常查询。页面异常不能说明商品有问题，建议稍后重试。"
+    }
     if (analysis.claimConflicts.isNotEmpty()) {
         return "宣传内容与当前可识别的商品登记类型存在明显冲突风险。先不要只看广告结论，应核对官方登记用途。"
     }
@@ -314,13 +342,28 @@ private fun riskSummary(analysis: RiskAnalysis): String {
     }
 }
 
-private fun purchaseAdvice(analysis: RiskAnalysis): String = when (analysis.level) {
-    RiskLevel.HIGH ->
-        "先不要付款。保存商品名、生产企业、型号和注册 / 备案编号，再到官方平台逐项核对；涉及疾病治疗时，不要因为广告自行停药。"
-    RiskLevel.MEDIUM ->
-        "先核对资质、生产企业、型号规格和登记用途，再决定。不要只看“专家推荐、国家专利、用户案例”等宣传。"
-    RiskLevel.LOW ->
-        "目前没有触发明显高风险词，但仍建议核对企业、价格、抽检和召回信息。普通商品没有注册号并不等于有问题。"
+private fun purchaseAdvice(analysis: RiskAnalysis): String {
+    val verification = analysis.verification
+    if (verification.manualRecord?.hasMismatch == true) {
+        return "先暂停付款。保留商品页面和包装照片，请家人一起复核不一致的字段；不要把人工勾选当成官方认证。"
+    }
+    if (verification.hasUnresolvedScreenshotMismatch) {
+        return "先暂停付款并人工核对截图中标记的字段。OCR 的“可能不一致”只是提醒，不能直接作为真假结论。"
+    }
+    if (verification.status == VerificationStatus.NOT_FOUND) {
+        return "先检查编号有没有抄错、是否选错查询类别，再重新查询。仍找不到时，保存证据并向官方渠道或家人求助。"
+    }
+    if (verification.status == VerificationStatus.ERROR) {
+        return "稍后重新打开官方页面，或把编号和包装照片发给家人协助查询。页面打不开时不要急着作出真假判断。"
+    }
+    return when (analysis.level) {
+        RiskLevel.HIGH ->
+            "先不要付款。保存商品名、生产企业、型号和注册 / 备案编号，再到官方平台逐项核对；涉及疾病治疗时，不要因为广告自行停药。"
+        RiskLevel.MEDIUM ->
+            "先核对资质、生产企业、型号规格和登记用途，再决定。不要只看“专家推荐、国家专利、用户案例”等宣传。"
+        RiskLevel.LOW ->
+            "目前没有触发明显高风险词，但仍建议核对企业、价格、抽检和召回信息。普通商品没有注册号并不等于有问题。"
+    }
 }
 
 private fun riskLevelText(level: RiskLevel): String = when (level) {

@@ -11,8 +11,8 @@ android {
         applicationId = "com.silverguard.app"
         minSdk = 23
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.3.2"
+        versionCode = 9
+        versionName = "0.3.4"
     }
 
     buildFeatures {

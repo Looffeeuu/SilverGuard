@@ -16,7 +16,7 @@ object RegistrationNumberClassifier {
         ClassificationRule(
             type = RegistrationType.MEDICAL_DEVICE,
             confidence = 0.96f,
-            regex = Regex("(?:国|[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]|[\\u4E00-\\u9FFF]{2,4})械(?:注(?:准|进|许)|备)[A-Z0-9]{6,24}号?"),
+            regex = Regex("(?:国|[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼])械(?:注(?:准|进|许)|备)[A-Z0-9]{6,24}号?"),
             reason = "编号包含“械注”或“械备”等医疗器械注册 / 备案格式特征。"
         ),
         ClassificationRule(

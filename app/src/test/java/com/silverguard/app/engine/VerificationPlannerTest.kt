@@ -35,6 +35,8 @@ class VerificationPlannerTest {
         assertEquals(VerificationStatus.MANUAL_REQUIRED, result.status)
         assertTrue(result.readiness.ready)
         assertTrue(result.checkedAt == null)
+        assertTrue(result.checklist.isNotEmpty())
+        assertTrue(result.manualRecord == null)
     }
 
     @Test
