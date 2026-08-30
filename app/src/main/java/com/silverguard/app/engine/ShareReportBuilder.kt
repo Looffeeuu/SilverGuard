@@ -2,6 +2,10 @@ package com.silverguard.app.engine
 
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
+import com.silverguard.app.model.EcommerceFieldType
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object ShareReportBuilder {
 
@@ -27,9 +31,40 @@ object ShareReportBuilder {
             RiskLevel.MEDIUM -> "建议先核对资质、企业、型号规格和登记用途，再决定是否购买。"
             RiskLevel.LOW -> "未发现明显高风险词，但仍建议核对商品信息和官方记录。"
         }
+        val sourceSection = analysis.ecommerceLinkInfo
+            ?.takeIf { it.isSupportedPlatform }
+            ?.let { linkInfo ->
+                val product = analysis.ecommerceProduct
+                val parseSummary = product?.parseStatus?.displayName ?: if (linkInfo.isShortLink) {
+                    "已识别平台短链接，需要进一步解析"
+                } else {
+                    "已识别商品链接，尚未自动读取完整商品详情"
+                }
+                val titleSource = product?.fields
+                    ?.firstOrNull { it.type == EcommerceFieldType.TITLE }
+                    ?.source
+                    ?.displayName
+                    ?: "尚未读取"
+                """
+                    【商品来源】
+                    平台：${linkInfo.platform.displayName}
+                    商品：${product?.title ?: "暂未读取"}
+                    页面显示价格：${product?.price ?: "暂未读取"}
+                    店铺/卖家：${product?.shopName ?: product?.sellerName ?: "暂未读取"}
+                    商品 ID：${product?.productId ?: linkInfo.productId ?: "暂未识别"}
+                    商品链接：${product?.canonicalUrl ?: linkInfo.shareableUrl ?: "暂未识别"}
+                    解析状态：$parseSummary
+                    读取时间：${product?.fetchedAt?.let(::formatTime) ?: "尚未完成"}
+                    商品名称来源：$titleSource
+
+                """.trimIndent()
+            }
+            .orEmpty()
 
         return """
-            【银龄安心查 · v0.3.0】
+            【银龄安心查 · v0.3.2】
+
+            $sourceSection
 
             【商品信息】
             商品：${info.name ?: "未识别"}
@@ -62,4 +97,7 @@ object ShareReportBuilder {
         RiskLevel.MEDIUM -> "中"
         RiskLevel.LOW -> "低"
     }
+
+    private fun formatTime(timestamp: Long): String =
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(timestamp))
 }

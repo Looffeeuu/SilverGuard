@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.silverguard.app.model.ProductInfo
+import com.silverguard.app.model.ProductDetailParseStatus
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
 
@@ -31,9 +32,31 @@ import com.silverguard.app.model.RiskLevel
 internal fun ResultSection(
     analysis: RiskAnalysis,
     onOpenOfficialSource: (String) -> Unit,
+    onOpenProductPage: (String) -> Unit,
+    onSelectScreenshot: () -> Unit,
     onReset: () -> Unit
 ) {
     ResultSummary(analysis)
+
+    analysis.ecommerceLinkInfo
+        ?.takeIf { it.isSupportedPlatform }
+        ?.let { linkInfo ->
+            Spacer(Modifier.height(12.dp))
+            ProductSourceCard(linkInfo, analysis.ecommerceProduct)
+            analysis.ecommerceProduct
+                ?.takeIf { product ->
+                    product.parseStatus != ProductDetailParseStatus.SUCCESS &&
+                        product.parseStatus != ProductDetailParseStatus.PARTIAL
+                }
+                ?.let { product ->
+                    Spacer(Modifier.height(12.dp))
+                    ProductParseFallbackCard(
+                        product = product,
+                        onOpenProductPage = onOpenProductPage,
+                        onSelectScreenshot = onSelectScreenshot
+                    )
+                }
+        }
 
     Spacer(Modifier.height(12.dp))
     InfoCard("① 我识别到了什么？") {

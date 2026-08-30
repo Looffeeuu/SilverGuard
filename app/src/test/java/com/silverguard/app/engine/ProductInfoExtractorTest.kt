@@ -53,4 +53,17 @@ class ProductInfoExtractorTest {
         assertNull(result.manufacturer)
         assertNull(result.registrationNumber)
     }
+
+    @Test
+    fun taobaoPasswordBoilerplateIsNotTreatedAsProductName() {
+        val result = ProductInfoExtractor.extract(
+            """
+                【淘宝】假一赔十
+                HU006 「拷贝链接」
+                点击链接直接打开 或者 淘宝搜索直接打开
+            """.trimIndent()
+        )
+
+        assertNull(result.name)
+    }
 }

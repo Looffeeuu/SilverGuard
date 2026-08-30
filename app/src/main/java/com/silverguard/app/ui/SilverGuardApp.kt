@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,22 +55,64 @@ import androidx.compose.ui.unit.sp
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.silverguard.app.engine.EcommerceLinkParser
 import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.ShareReportBuilder
 import com.silverguard.app.model.RiskAnalysis
+import com.silverguard.app.network.TaobaoTmallProductResolver
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SilverGuardApp() {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val coroutineScope = rememberCoroutineScope()
+    val productResolver = remember { TaobaoTmallProductResolver() }
 
     var inputText by remember { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var analysis by remember { mutableStateOf<RiskAnalysis?>(null) }
     var isOcrRunning by remember { mutableStateOf(false) }
+    var isProductLoading by remember { mutableStateOf(false) }
+    var analysisJob by remember { mutableStateOf<Job?>(null) }
+    var analysisRequestVersion by remember { mutableStateOf(0) }
     var ocrMessage by remember { mutableStateOf("选择截图后可在手机本地识别文字") }
+    val detectedLinkInfo = remember(inputText) { EcommerceLinkParser.parse(inputText) }
+
+    fun cancelProductRead() {
+        analysisRequestVersion += 1
+        analysisJob?.cancel()
+        analysisJob = null
+        isProductLoading = false
+    }
+
+    fun analyzeInput(text: String) {
+        val requestText = text.trim()
+        if (requestText.isBlank()) return
+        cancelProductRead()
+        focusManager.clearFocus(force = true)
+        val requestId = analysisRequestVersion
+        val linkInfo = EcommerceLinkParser.parse(requestText)
+
+        if (!productResolver.canResolve(linkInfo)) {
+            analysis = RiskAnalyzer.analyze(requestText)
+            return
+        }
+
+        isProductLoading = true
+        analysis = null
+        analysisJob = coroutineScope.launch {
+            val product = productResolver.resolve(linkInfo)
+            if (analysisRequestVersion == requestId) {
+                analysis = RiskAnalyzer.analyze(requestText, product)
+                isProductLoading = false
+                analysisJob = null
+            }
+        }
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -85,8 +128,7 @@ fun SilverGuardApp() {
                 onSuccess = { text ->
                     inputText = text.trim()
                     if (text.isNotBlank()) {
-                        focusManager.clearFocus(force = true)
-                        analysis = RiskAnalyzer.analyze(text)
+                        analyzeInput(text)
                     }
                     isOcrRunning = false
                     ocrMessage = if (text.isBlank()) {
@@ -116,8 +158,7 @@ fun SilverGuardApp() {
                 onSuccess = { text ->
                     inputText = text.trim()
                     if (text.isNotBlank()) {
-                        focusManager.clearFocus(force = true)
-                        analysis = RiskAnalyzer.analyze(text)
+                        analyzeInput(text)
                     }
                     isOcrRunning = false
                     ocrMessage = if (text.isBlank()) {
@@ -165,7 +206,10 @@ fun SilverGuardApp() {
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
-                        onClick = { cameraLauncher.launch(null) },
+                        onClick = {
+                            cancelProductRead()
+                            cameraLauncher.launch(null)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(60.dp),
@@ -175,7 +219,10 @@ fun SilverGuardApp() {
                         Text("拍商品查", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(
-                        onClick = { imagePicker.launch("image/*") },
+                        onClick = {
+                            cancelProductRead()
+                            imagePicker.launch("image/*")
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(60.dp),
@@ -215,38 +262,56 @@ fun SilverGuardApp() {
                 Spacer(Modifier.height(14.dp))
                 OutlinedTextField(
                     value = inputText,
-                    onValueChange = { inputText = it },
+                    onValueChange = {
+                        cancelProductRead()
+                        analysis = null
+                        inputText = it
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(190.dp),
-                    label = { Text("把包装信息或广告里的话写在这里") },
-                    placeholder = { Text("例如：商品名、生产企业、注册号和宣传内容") },
+                        .height(210.dp),
+                    label = { Text("写商品信息，或粘贴商品链接") },
+                    placeholder = {
+                        Text(
+                            "例如：太赫兹理疗仪 改善鼻炎 2980元\n\n或粘贴淘宝、天猫、拼多多、京东、抖音商品链接"
+                        )
+                    },
                     shape = RoundedCornerShape(18.dp)
                 )
 
                 Spacer(Modifier.height(10.dp))
+                EcommerceLinkCard(detectedLinkInfo)
+                if (detectedLinkInfo.extractedUrl != null) {
+                    Spacer(Modifier.height(10.dp))
+                }
+                if (isProductLoading) {
+                    ProductLoadingCard()
+                    Spacer(Modifier.height(10.dp))
+                }
                 Button(
                     onClick = {
                         if (inputText.isNotBlank()) {
-                            focusManager.clearFocus(force = true)
-                            analysis = RiskAnalyzer.analyze(inputText)
+                            analyzeInput(inputText)
                         }
                     },
-                    enabled = inputText.isNotBlank() && !isOcrRunning,
+                    enabled = inputText.isNotBlank() && !isOcrRunning && !isProductLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Brand),
                     shape = RoundedCornerShape(18.dp)
                 ) {
-                    Text("开始分析", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isProductLoading) "正在读取商品信息…" else "帮我看看有没有风险",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Spacer(Modifier.height(12.dp))
                 ExampleButtons { sample ->
-                    focusManager.clearFocus(force = true)
                     inputText = sample
-                    analysis = RiskAnalyzer.analyze(sample)
+                    analyzeInput(sample)
                 }
 
                 analysis?.let { current ->
@@ -254,7 +319,13 @@ fun SilverGuardApp() {
                     ResultSection(
                         analysis = current,
                         onOpenOfficialSource = { openUrl(context, it) },
+                        onOpenProductPage = { openUrl(context, it) },
+                        onSelectScreenshot = {
+                            cancelProductRead()
+                            imagePicker.launch("image/*")
+                        },
                         onReset = {
+                            cancelProductRead()
                             analysis = null
                             inputText = ""
                             selectedUri = null
@@ -268,7 +339,7 @@ fun SilverGuardApp() {
                 DisclaimerCard()
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "银龄安心查 · Android MVP 0.3.0",
+                    "银龄安心查 · Android MVP 0.3.2",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 12.sp
@@ -335,7 +406,7 @@ private fun HeroCard() {
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                "先看宣传风险，再整理包装信息，并告诉你应该去哪个官方平台人工核对。",
+                "先认商品来源，再看宣传风险、整理包装信息，并告诉你应该去哪个官方平台人工核对。",
                 color = Color(0xFFE8F4ED),
                 fontSize = 16.sp,
                 lineHeight = 25.sp
@@ -421,7 +492,7 @@ private fun DisclaimerCard() {
         shape = RoundedCornerShape(18.dp)
     ) {
         Text(
-            "重要说明：当前版本提供消费风险辅助判断、编号分类和官方人工查询入口，尚未自动匹配国家数据库，不是行政认定、医学诊断或官方认证。",
+            "重要说明：本版只尝试读取无需登录即可公开访问的淘宝 / 天猫基础信息，不保存账号或 Cookie。平台页面信息不代表商品真假或官方核验结果。",
             modifier = Modifier.padding(16.dp),
             color = Muted,
             lineHeight = 21.sp,

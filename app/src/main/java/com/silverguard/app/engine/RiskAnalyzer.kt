@@ -3,6 +3,7 @@ package com.silverguard.app.engine
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskFlag
 import com.silverguard.app.model.RiskLevel
+import com.silverguard.app.model.EcommerceProduct
 
 object RiskAnalyzer {
 
@@ -70,8 +71,15 @@ object RiskAnalyzer {
         )
     )
 
-    fun analyze(text: String): RiskAnalysis {
-        val clean = text.trim()
+    fun analyze(text: String, ecommerceProduct: EcommerceProduct? = null): RiskAnalysis {
+        val ecommerceLinkInfo = EcommerceLinkParser.parse(text)
+        val localText = UrlAnalysisSanitizer.stripUrlsForAnalysis(text)
+        val ecommerceText = ecommerceProduct
+            ?.let(EcommerceProductToProductInfoMapper::riskAnalysisText)
+            .orEmpty()
+        val clean = listOf(localText, ecommerceText)
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
         val flags = mutableListOf<RiskFlag>()
         var score = 0
 
@@ -104,7 +112,13 @@ object RiskAnalyzer {
         }
 
         val category = classify(clean)
-        val productInfo = ProductInfoExtractor.extract(clean)
+        val localProductInfo = ProductInfoExtractor.extract(localText)
+        val productInfo = ecommerceProduct?.let { product ->
+            EcommerceProductToProductInfoMapper.merge(
+                preferred = localProductInfo,
+                fallback = EcommerceProductToProductInfoMapper.toProductInfo(product)
+            )
+        } ?: localProductInfo
         val verification = VerificationPlanner.plan(productInfo)
 
         return RiskAnalysis(
@@ -119,7 +133,9 @@ object RiskAnalyzer {
             claimConflicts = ClaimRegistrationConflictAnalyzer.analyze(
                 text = clean,
                 registrationType = verification.registration.type
-            )
+            ),
+            ecommerceLinkInfo = ecommerceLinkInfo,
+            ecommerceProduct = ecommerceProduct
         )
     }
 

@@ -20,5 +20,7 @@ data class RiskAnalysis(
     val flags: List<RiskFlag>,
     val productInfo: ProductInfo = ProductInfo(),
     val verification: VerificationResult,
-    val claimConflicts: List<ClaimRegistrationConflict> = emptyList()
+    val claimConflicts: List<ClaimRegistrationConflict> = emptyList(),
+    val ecommerceLinkInfo: EcommerceLinkInfo? = null,
+    val ecommerceProduct: EcommerceProduct? = null
 )

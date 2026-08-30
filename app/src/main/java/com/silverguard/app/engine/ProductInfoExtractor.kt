@@ -100,11 +100,17 @@ object ProductInfoExtractor {
     private fun inferProductName(text: String): String? {
         val readableLine = text
             .lineSequence()
-            .map { it.trim() }
+            .map { line ->
+                line.trim()
+                    .replace(Regex("^【(?:淘宝|天猫|拼多多|京东|抖音)】\\s*"), "")
+                    .trim()
+            }
             .firstOrNull { line ->
                 line.length in 2..36 &&
                     boundaryLabels.none { label -> line.startsWith(label, ignoreCase = true) } &&
-                    !Regex("百分百|保证有效|专家推荐|仅限今天|马上抢").containsMatchIn(line)
+                    !Regex(
+                        "百分百|保证有效|专家推荐|仅限今天|马上抢|假一赔|拷贝链接|复制链接|点击链接|搜索直接打开|淘口令|[A-Z]{2}\\d{3}"
+                    ).containsMatchIn(line)
             }
         if (readableLine != null) return readableLine.cleanValue()
 
