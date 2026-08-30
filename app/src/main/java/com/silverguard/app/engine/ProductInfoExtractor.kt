@@ -12,6 +12,7 @@ object ProductInfoExtractor {
         "商品名称", "产品名称", "品名", "名称", "品牌", "商标",
         "生产企业", "生产厂家", "制造商", "厂名", "企业名称",
         "型号", "Model", "规格型号", "规格", "净含量", "容量", "包装规格",
+        "医疗器械注册证编号", "化妆品注册证编号", "保健食品注册号",
         "注册证号", "注册编号", "备案编号", "备案号", "批准文号", "产品标准号", "执行标准",
         "售价", "现价", "价格", "零售价", "地址", "电话", "生产日期", "保质期",
         "配料", "成分", "适用人群", "注意事项"
@@ -47,9 +48,12 @@ object ProductInfoExtractor {
             ),
             registrationNumber = extractLabeledValue(
                 clean,
-                listOf("注册证号", "注册编号", "备案编号", "备案号", "批准文号", "产品标准号", "执行标准"),
+                listOf(
+                    "医疗器械注册证编号", "化妆品注册证编号", "保健食品注册号",
+                    "注册证号", "注册编号", "备案编号", "备案号", "批准文号"
+                ),
                 maxLength = 48
-            ),
+            ) ?: RegistrationNumberClassifier.findCandidate(clean),
             price = extractPrice(clean)
         )
     }

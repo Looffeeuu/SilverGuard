@@ -103,14 +103,23 @@ object RiskAnalyzer {
             RiskLevel.LOW -> "暂未发现明显高风险"
         }
 
+        val category = classify(clean)
+        val productInfo = ProductInfoExtractor.extract(clean)
+        val verification = VerificationPlanner.plan(productInfo)
+
         return RiskAnalysis(
             rawText = clean,
-            category = classify(clean),
+            category = category,
             score = score,
             level = level,
             title = title,
             flags = flags,
-            productInfo = ProductInfoExtractor.extract(clean)
+            productInfo = productInfo,
+            verification = verification,
+            claimConflicts = ClaimRegistrationConflictAnalyzer.analyze(
+                text = clean,
+                registrationType = verification.registration.type
+            )
         )
     }
 
