@@ -18,7 +18,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,14 +26,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.silverguard.app.engine.CaptureGuidanceEvaluator
+import com.silverguard.app.model.AnalysisInputMethod
 import com.silverguard.app.model.EvidenceMatchStatus
 import com.silverguard.app.model.OfficialSearchOutcome
 import com.silverguard.app.model.OfficialSource
@@ -42,6 +41,7 @@ import com.silverguard.app.model.ProductDetailParseStatus
 import com.silverguard.app.model.ProductInfo
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
+import com.silverguard.app.model.SupplementAction
 import com.silverguard.app.model.VerificationEvidenceField
 import com.silverguard.app.model.VerificationStatus
 
@@ -56,19 +56,21 @@ internal fun ResultSection(
     onRecordFinding: (VerificationEvidenceField, EvidenceMatchStatus) -> Unit,
     onOpenProductPage: (String) -> Unit,
     onSelectScreenshot: () -> Unit,
+    inputMethods: Set<AnalysisInputMethod>,
     onSupplementPhoto: () -> Unit,
+    onSupplementScreenshot: () -> Unit,
+    isSupplementRunning: Boolean,
+    supplementMessage: String,
     onSpeakResult: () -> Unit,
     onStopSpeaking: () -> Unit,
     isSpeaking: Boolean,
     speechMessage: String?,
     onReset: () -> Unit
 ) {
-    val guidance = remember(analysis.productInfo) {
-        CaptureGuidanceEvaluator.evaluate(analysis.productInfo)
+    val guidance = remember(analysis.productInfo, inputMethods) {
+        CaptureGuidanceEvaluator.evaluate(analysis.productInfo, inputMethods)
     }
-    var showProductDetails by remember(analysis.rawText) { mutableStateOf(false) }
-    var showRiskDetails by remember(analysis.rawText) { mutableStateOf(false) }
-    var showSourceDetails by remember(analysis.rawText) { mutableStateOf(false) }
+    var showDetails by remember(analysis.rawText) { mutableStateOf(false) }
 
     ResultSummary(analysis)
 
@@ -81,98 +83,102 @@ internal fun ResultSection(
         onStopSpeaking = onStopSpeaking
     )
 
-    if (guidance.shouldSuggestSupplement) {
-        Spacer(Modifier.height(12.dp))
-        SupplementSuggestionCard(
-            guidanceMessage = guidance.message,
-            suggestedShots = guidance.suggestedShots,
-            informationIsLimited = guidance.informationIsLimited,
-            onSupplementPhoto = onSupplementPhoto
-        )
-    }
-
-    analysis.ecommerceLinkInfo
-        ?.takeIf { it.isSupportedPlatform }
-        ?.let { linkInfo ->
-            Spacer(Modifier.height(12.dp))
-            ExpandableInfoCard(
-                title = "商品来源",
-                summary = "${linkInfo.platform.displayName} · ${analysis.ecommerceProduct?.parseStatus?.displayName ?: "链接已识别"}",
-                expanded = showSourceDetails,
-                onToggle = { showSourceDetails = !showSourceDetails }
-            ) {
-                ProductSourceCard(linkInfo, analysis.ecommerceProduct)
-            }
-            analysis.ecommerceProduct
-                ?.takeIf { product ->
-                    product.parseStatus != ProductDetailParseStatus.SUCCESS &&
-                        product.parseStatus != ProductDetailParseStatus.PARTIAL
-                }
-                ?.let { product ->
-                    Spacer(Modifier.height(12.dp))
-                    ProductParseFallbackCard(
-                        product = product,
-                        onOpenProductPage = onOpenProductPage,
-                        onSelectScreenshot = onSelectScreenshot
-                    )
-                }
-        }
-
     Spacer(Modifier.height(12.dp))
-    ExpandableInfoCard(
-        title = "① 我识别到了什么？",
-        summary = "已整理 ${analysis.productInfo.detectedCount}/${ProductInfo.FIELD_COUNT} 项包装信息",
-        expanded = showProductDetails,
-        onToggle = { showProductDetails = !showProductDetails }
-    ) {
-        ProductInfoSection(
-            category = analysis.category,
-            productInfo = analysis.productInfo
-        )
-    }
-
-    Spacer(Modifier.height(12.dp))
-    InfoCard("② 哪些地方需要警惕？") {
-        RiskPreview(analysis)
-        if (analysis.flags.size + analysis.claimConflicts.size > 2) {
-            Spacer(Modifier.height(6.dp))
-            TextButton(
-                onClick = { showRiskDetails = !showRiskDetails },
-                modifier = Modifier.heightIn(min = 48.dp)
-            ) {
-                Text(if (showRiskDetails) "收起全部依据" else "查看全部风险依据")
-            }
-            if (showRiskDetails) {
-                Spacer(Modifier.height(6.dp))
-                RiskSignals(analysis, skip = 2)
-            }
-        }
-    }
-
-    Spacer(Modifier.height(12.dp))
-    VerificationCard(
-        result = analysis.verification,
-        onOpenOfficialSource = onOpenOfficialSource,
-        onSelectOfficialScreenshot = onSelectOfficialScreenshot,
-        isOfficialScreenshotOcrRunning = isOfficialScreenshotOcrRunning,
-        officialScreenshotMessage = officialScreenshotMessage,
-        onRecordSearchOutcome = onRecordSearchOutcome,
-        onRecordFinding = onRecordFinding,
-        onRetry = onSupplementPhoto
+    SupplementSuggestionCard(
+        title = guidance.title,
+        guidanceMessage = guidance.message,
+        suggestedShots = if (inputMethods == setOf(AnalysisInputMethod.PHOTO)) guidance.suggestedShots else emptyList(),
+        informationIsLimited = guidance.informationIsLimited,
+        actions = guidance.actions,
+        onSupplementPhoto = onSupplementPhoto,
+        onSupplementScreenshot = onSupplementScreenshot,
+        isSupplementRunning = isSupplementRunning,
+        supplementMessage = supplementMessage
     )
 
     Spacer(Modifier.height(12.dp))
-    InfoCard("④ 我现在应该怎么办？") {
-        Text(purchaseAdvice(analysis), lineHeight = 24.sp, fontWeight = FontWeight.SemiBold)
+    OutlinedButton(
+        onClick = { showDetails = !showDetails },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 60.dp)
+            .testTag("result_details_toggle"),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Text(
+            if (showDetails) "收起详细信息" else "显示详细信息",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+
+    if (showDetails) {
+        analysis.ecommerceLinkInfo
+            ?.takeIf { it.isSupportedPlatform }
+            ?.let { linkInfo ->
+                Spacer(Modifier.height(12.dp))
+                ProductSourceCard(linkInfo, analysis.ecommerceProduct)
+                analysis.ecommerceProduct
+                    ?.takeIf { product ->
+                        product.parseStatus != ProductDetailParseStatus.SUCCESS &&
+                            product.parseStatus != ProductDetailParseStatus.PARTIAL
+                    }
+                    ?.let { product ->
+                        Spacer(Modifier.height(12.dp))
+                        ProductParseFallbackCard(
+                            product = product,
+                            onOpenProductPage = onOpenProductPage,
+                            onSelectScreenshot = onSelectScreenshot
+                        )
+                    }
+            }
+
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(
-            onClick = onReset,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 58.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("重新查一个", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        InfoCard("① 我识别到了什么？") {
+            Text(
+                "已整理 ${analysis.productInfo.detectedCount}/${ProductInfo.FIELD_COUNT} 项包装信息",
+                color = Muted,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            ProductInfoSection(
+                category = analysis.category,
+                productInfo = analysis.productInfo
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+        InfoCard("② 哪些地方需要警惕？") {
+            if (analysis.flags.isEmpty() && analysis.claimConflicts.isEmpty()) {
+                RiskPreview(analysis)
+            } else {
+                RiskSignals(analysis, skip = 0)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        VerificationCard(
+            result = analysis.verification,
+            onOpenOfficialSource = onOpenOfficialSource,
+            onSelectOfficialScreenshot = onSelectOfficialScreenshot,
+            isOfficialScreenshotOcrRunning = isOfficialScreenshotOcrRunning,
+            officialScreenshotMessage = officialScreenshotMessage,
+            onRecordSearchOutcome = onRecordSearchOutcome,
+            onRecordFinding = onRecordFinding,
+            onRetry = onSupplementPhoto
+        )
+
+        Spacer(Modifier.height(12.dp))
+        InfoCard("其他操作") {
+            OutlinedButton(
+                onClick = onReset,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 58.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("重新查一个", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -270,10 +276,15 @@ private fun NextActionCard(
 
 @Composable
 private fun SupplementSuggestionCard(
+    title: String,
     guidanceMessage: String,
     suggestedShots: List<String>,
     informationIsLimited: Boolean,
-    onSupplementPhoto: () -> Unit
+    actions: List<SupplementAction>,
+    onSupplementPhoto: () -> Unit,
+    onSupplementScreenshot: () -> Unit,
+    isSupplementRunning: Boolean,
+    supplementMessage: String
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = if (informationIsLimited) SoftAmber else SoftGreen),
@@ -281,7 +292,7 @@ private fun SupplementSuggestionCard(
     ) {
         Column(Modifier.padding(18.dp)) {
             Text(
-                if (informationIsLimited) "信息较少，请留意" else "可以补拍得更完整",
+                title,
                 modifier = Modifier.semantics { heading() },
                 color = Ink,
                 fontSize = 19.sp,
@@ -294,59 +305,43 @@ private fun SupplementSuggestionCard(
                 Text("建议拍：${suggestedShots.joinToString("、")}", color = Muted, lineHeight = 22.sp)
             }
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onSupplementPhoto,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 58.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("建议补拍包装（可以跳过）", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            actions.forEach { action ->
+                OutlinedButton(
+                    onClick = when (action) {
+                        SupplementAction.TAKE_PHOTO -> onSupplementPhoto
+                        SupplementAction.SELECT_SCREENSHOT -> onSupplementScreenshot
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 58.dp),
+                    enabled = !isSupplementRunning,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(
+                        when (action) {
+                            SupplementAction.TAKE_PHOTO -> "拍商品包装补充信息"
+                            SupplementAction.SELECT_SCREENSHOT -> "选择商品截图补充信息"
+                        },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(7.dp))
+            }
+            if (isSupplementRunning) {
+                Text(
+                    supplementMessage,
+                    color = Ink,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 21.sp
+                )
+                Spacer(Modifier.height(6.dp))
             }
             Text(
-                "不补拍也能继续查看当前结果。",
-                modifier = Modifier.padding(top = 6.dp),
+                "这是补充建议，不操作也能继续查看当前结论。",
                 color = Muted,
                 fontSize = 13.sp
             )
-        }
-    }
-}
-
-@Composable
-private fun ExpandableInfoCard(
-    title: String,
-    summary: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text(
-                title,
-                modifier = Modifier.semantics { heading() },
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Ink
-            )
-            Spacer(Modifier.height(5.dp))
-            Text(summary, color = Muted, lineHeight = 21.sp)
-            TextButton(
-                onClick = onToggle,
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics { role = Role.Button }
-            ) {
-                Text(if (expanded) "收起详细信息" else "查看详细信息")
-            }
-            if (expanded) {
-                Spacer(Modifier.height(4.dp))
-                content()
-            }
         }
     }
 }

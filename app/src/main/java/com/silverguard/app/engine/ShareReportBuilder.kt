@@ -106,7 +106,7 @@ object ShareReportBuilder {
             .orEmpty()
 
         return """
-            【银龄安心查 · v0.3.5】
+            【银龄安心查 · v0.3.6】
 
             $sourceSection
 

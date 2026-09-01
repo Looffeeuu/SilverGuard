@@ -56,9 +56,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -80,6 +83,7 @@ import com.silverguard.app.engine.OfficialScreenshotAnalyzer
 import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.ShareReportBuilder
 import com.silverguard.app.engine.SpeechSummaryBuilder
+import com.silverguard.app.model.AnalysisInputMethod
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.network.TaobaoTmallProductResolver
 import kotlinx.coroutines.Job
@@ -157,6 +161,11 @@ private fun SilverGuardContent(
     var showManualInput by rememberSaveable { mutableStateOf(false) }
     var showExamples by rememberSaveable { mutableStateOf(false) }
     var isSupplementCapture by remember { mutableStateOf(false) }
+    var isSupplementScreenshot by remember { mutableStateOf(false) }
+    var analysisInputMethods by remember {
+        mutableStateOf<Set<AnalysisInputMethod>>(emptySet())
+    }
+    var hasPendingTextChanges by remember { mutableStateOf(false) }
     var showResetConfirmation by remember { mutableStateOf(false) }
     var waitingForOfficialReturn by remember { mutableStateOf(false) }
     var officialPageWasOpened by remember { mutableStateOf(false) }
@@ -186,9 +195,18 @@ private fun SilverGuardContent(
         isProductLoading = false
     }
 
-    fun analyzeInput(text: String) {
+    fun analyzeInput(text: String, inputMethod: AnalysisInputMethod? = null) {
         val requestText = text.trim()
         if (requestText.isBlank()) return
+        val resolvedInputMethod = inputMethod ?: if (
+            EcommerceLinkParser.parse(requestText).extractedUrl != null
+        ) {
+            AnalysisInputMethod.PRODUCT_LINK
+        } else {
+            AnalysisInputMethod.TEXT
+        }
+        analysisInputMethods = analysisInputMethods + resolvedInputMethod
+        hasPendingTextChanges = false
         cancelProductRead()
         speaker.stop()
         isOfficialScreenshotOcrRunning = false
@@ -203,7 +221,6 @@ private fun SilverGuardContent(
         }
 
         isProductLoading = true
-        analysis = null
         analysisJob = coroutineScope.launch {
             val product = productResolver.resolve(linkInfo)
             if (analysisRequestVersion == requestId) {
@@ -226,35 +243,52 @@ private fun SilverGuardContent(
         ocrMessage = "拍商品或选择截图后，可在手机本地识别文字"
         showManualInput = false
         isSupplementCapture = false
+        isSupplementScreenshot = false
+        analysisInputMethods = emptySet()
+        hasPendingTextChanges = false
     }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        selectedUri = uri
-        capturedBitmap = null
+        val supplement = isSupplementScreenshot
         if (uri != null) {
+            selectedUri = uri
+            capturedBitmap = null
             isOcrRunning = true
-            ocrMessage = "正在识别截图文字…"
+            ocrMessage = if (supplement) "正在把补充截图文字合并到当前商品…" else "正在识别截图文字…"
             runChineseOcr(
                 context = context,
                 uri = uri,
                 onSuccess = { text ->
-                    inputText = text.trim()
-                    showManualInput = true
-                    if (text.isNotBlank()) analyzeInput(text)
-                    isOcrRunning = false
-                    ocrMessage = if (text.isBlank()) {
-                        "没有识别到文字，可以手动输入商品名或宣传语"
+                    val combined = if (supplement) {
+                        CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
                     } else {
-                        "识别完成，可以修改文字后再分析"
+                        analysisInputMethods = emptySet()
+                        text.trim()
+                    }
+                    if (combined.isNotBlank()) {
+                        inputText = combined
+                        showManualInput = true
+                        analyzeInput(combined, AnalysisInputMethod.SCREENSHOT)
+                    }
+                    isOcrRunning = false
+                    isSupplementScreenshot = false
+                    ocrMessage = when {
+                        text.isBlank() && supplement -> "补充截图没有识别到新文字，当前分析仍然保留"
+                        text.isBlank() -> "没有识别到文字，可以手动输入商品名或宣传语"
+                        supplement -> "补充截图信息已合并，并重新生成分析结果"
+                        else -> "识别完成，可以修改文字后再分析"
                     }
                 },
                 onError = {
                     isOcrRunning = false
+                    isSupplementScreenshot = false
                     ocrMessage = "识别失败：${it.message ?: "未知错误"}。原有文字没有被清除。"
                 }
             )
+        } else {
+            isSupplementScreenshot = false
         }
     }
 
@@ -321,12 +355,13 @@ private fun SilverGuardContent(
                     val combined = if (supplement) {
                         CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
                     } else {
+                        analysisInputMethods = emptySet()
                         text.trim()
                     }
                     if (combined.isNotBlank()) {
                         inputText = combined
                         showManualInput = true
-                        analyzeInput(combined)
+                        analyzeInput(combined, AnalysisInputMethod.PHOTO)
                     }
                     isOcrRunning = false
                     isSupplementCapture = false
@@ -439,46 +474,48 @@ private fun SilverGuardContent(
                     onLargeTextChange = onLargeTextChange,
                     onHighContrastChange = onHighContrastChange
                 )
-                Spacer(Modifier.height(16.dp))
-                HeroCard()
-                Spacer(Modifier.height(18.dp))
+                if (analysis == null) {
+                    Spacer(Modifier.height(16.dp))
+                    HeroCard()
+                    Spacer(Modifier.height(18.dp))
 
-                Text(
-                    "选择一种查询方式",
-                    modifier = Modifier.semantics { heading() },
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink
-                )
-                Spacer(Modifier.height(10.dp))
-                PrimaryEntryButton(
-                    text = "拍商品包装",
-                    testTag = "take_product_photo",
-                    filled = true,
-                    onClick = {
-                        cancelProductRead()
-                        isSupplementCapture = false
-                        cameraLauncher.launch(null)
-                    }
-                )
-                Spacer(Modifier.height(9.dp))
-                PrimaryEntryButton(
-                    text = "选择商品截图",
-                    testTag = "select_product_screenshot",
-                    onClick = {
-                        cancelProductRead()
-                        imagePicker.launch("image/*")
-                    }
-                )
-                Spacer(Modifier.height(9.dp))
-                PrimaryEntryButton(
-                    text = "粘贴商品链接 / 手动输入",
-                    testTag = "manual_product_input",
-                    onClick = { showManualInput = true }
-                )
+                    Text(
+                        "选择一种查询方式",
+                        modifier = Modifier.semantics { heading() },
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    PrimaryEntryButton(
+                        text = "拍商品包装",
+                        testTag = "take_product_photo",
+                        filled = true,
+                        onClick = {
+                            cancelProductRead()
+                            isSupplementCapture = false
+                            cameraLauncher.launch(null)
+                        }
+                    )
+                    Spacer(Modifier.height(9.dp))
+                    PrimaryEntryButton(
+                        text = "选择商品截图",
+                        testTag = "select_product_screenshot",
+                        onClick = {
+                            cancelProductRead()
+                            isSupplementScreenshot = false
+                            imagePicker.launch("image/*")
+                        }
+                    )
+                    Spacer(Modifier.height(9.dp))
+                    PrimaryEntryButton(
+                        text = "粘贴商品链接 / 手动输入",
+                        testTag = "manual_product_input",
+                        onClick = { showManualInput = true }
+                    )
 
-                Spacer(Modifier.height(10.dp))
-                when {
+                    Spacer(Modifier.height(10.dp))
+                    when {
                     capturedBitmap != null -> {
                         BitmapPreview(bitmap = capturedBitmap!!)
                         Spacer(Modifier.height(8.dp))
@@ -487,12 +524,12 @@ private fun SilverGuardContent(
                         ImagePreview(context = context, uri = selectedUri!!)
                         Spacer(Modifier.height(8.dp))
                     }
-                }
+                    }
 
-                Row(
+                    Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
-                ) {
+                    ) {
                     if (isOcrRunning) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
@@ -502,9 +539,9 @@ private fun SilverGuardContent(
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(ocrMessage, color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
-                }
+                    }
 
-                if (showManualInput || inputText.isNotBlank()) {
+                    if (showManualInput || inputText.isNotBlank()) {
                     Spacer(Modifier.height(14.dp))
                     OutlinedTextField(
                         value = inputText,
@@ -516,7 +553,8 @@ private fun SilverGuardContent(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 190.dp),
+                            .heightIn(min = 190.dp)
+                            .testTag("home_input_field"),
                         label = { Text("商品信息、宣传文字或商品链接") },
                         placeholder = {
                             Text("例如：太赫兹理疗仪 改善鼻炎 2980元\n\n也可以粘贴淘宝、天猫、拼多多、京东或抖音商品链接")
@@ -536,7 +574,8 @@ private fun SilverGuardContent(
                         enabled = inputText.isNotBlank() && !isOcrRunning && !isProductLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 60.dp),
+                            .heightIn(min = 60.dp)
+                            .testTag("start_analysis"),
                         colors = ButtonDefaults.buttonColors(containerColor = Brand),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -546,25 +585,56 @@ private fun SilverGuardContent(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                }
+                    }
 
-                Spacer(Modifier.height(8.dp))
-                TextButton(
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(
                     onClick = { showExamples = !showExamples },
                     modifier = Modifier.heightIn(min = 48.dp)
-                ) {
+                    ) {
                     Text(if (showExamples) "收起示例" else "查看输入示例")
-                }
-                if (showExamples) {
-                    ExampleButtons { sample ->
-                        inputText = sample
-                        showManualInput = true
-                        analyzeInput(sample)
+                    }
+                    if (showExamples) {
+                        ExampleButtons { sample ->
+                            inputText = sample
+                            showManualInput = true
+                            analyzeInput(sample, AnalysisInputMethod.TEXT)
+                        }
                     }
                 }
 
                 analysis?.let { current ->
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(16.dp))
+                    ResultInputComposer(
+                        inputText = inputText,
+                        inputMethods = analysisInputMethods,
+                        hasPendingTextChanges = hasPendingTextChanges,
+                        isUpdating = isOcrRunning || isProductLoading,
+                        updateMessage = when {
+                            isProductLoading -> "正在读取商品链接并更新综合结果…"
+                            isOcrRunning -> ocrMessage
+                            else -> null
+                        },
+                        onTextChange = {
+                            inputText = it
+                            hasPendingTextChanges = true
+                        },
+                        onApplyText = {
+                            if (EcommerceLinkParser.parse(inputText).extractedUrl != null) {
+                                analysisInputMethods = analysisInputMethods + AnalysisInputMethod.PRODUCT_LINK
+                            }
+                            analyzeInput(inputText, AnalysisInputMethod.TEXT)
+                        },
+                        onTakePhoto = {
+                            isSupplementCapture = true
+                            cameraLauncher.launch(null)
+                        },
+                        onSelectScreenshot = {
+                            isSupplementScreenshot = true
+                            imagePicker.launch("image/*")
+                        }
+                    )
+                    Spacer(Modifier.height(16.dp))
                     ResultSection(
                         analysis = current,
                         onOpenOfficialSource = { source ->
@@ -616,12 +686,20 @@ private fun SilverGuardContent(
                         onOpenProductPage = { openUrl(context, it) },
                         onSelectScreenshot = {
                             cancelProductRead()
+                            isSupplementScreenshot = true
                             imagePicker.launch("image/*")
                         },
+                        inputMethods = analysisInputMethods,
                         onSupplementPhoto = {
                             isSupplementCapture = true
                             cameraLauncher.launch(null)
                         },
+                        onSupplementScreenshot = {
+                            isSupplementScreenshot = true
+                            imagePicker.launch("image/*")
+                        },
+                        isSupplementRunning = isOcrRunning,
+                        supplementMessage = ocrMessage,
                         onSpeakResult = {
                             speaker.speak(SpeechSummaryBuilder.build(analysis ?: current))
                         },
@@ -632,11 +710,13 @@ private fun SilverGuardContent(
                     )
                 }
 
-                Spacer(Modifier.height(24.dp))
-                DisclaimerCard()
+                if (analysis == null) {
+                    Spacer(Modifier.height(24.dp))
+                    DisclaimerCard()
+                }
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "银龄安心查 · Android MVP 0.3.5",
+                    "银龄安心查 · Android MVP 0.3.6",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 12.sp
@@ -664,6 +744,122 @@ private fun SilverGuardContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ResultInputComposer(
+    inputText: String,
+    inputMethods: Set<AnalysisInputMethod>,
+    hasPendingTextChanges: Boolean,
+    isUpdating: Boolean,
+    updateMessage: String?,
+    onTextChange: (String) -> Unit,
+    onApplyText: () -> Unit,
+    onTakePhoto: () -> Unit,
+    onSelectScreenshot: () -> Unit
+) {
+    val textFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val sourceSummary = inputMethods
+        .ifEmpty { setOf(AnalysisInputMethod.TEXT) }
+        .joinToString("、") { it.displayName }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(22.dp)
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Text(
+                "继续补充分析信息",
+                modifier = Modifier.semantics { heading() },
+                color = Ink,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                "当前已综合：$sourceSummary",
+                color = Muted,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onTakePhoto,
+                    enabled = !isUpdating,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp),
+                    shape = RoundedCornerShape(15.dp)
+                ) { Text("拍照", fontWeight = FontWeight.Bold) }
+                OutlinedButton(
+                    onClick = onSelectScreenshot,
+                    enabled = !isUpdating,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp),
+                    shape = RoundedCornerShape(15.dp)
+                ) { Text("截图", fontWeight = FontWeight.Bold) }
+                OutlinedButton(
+                    onClick = {
+                        textFocusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
+                    enabled = !isUpdating,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp),
+                    shape = RoundedCornerShape(15.dp)
+                ) { Text("文字", fontWeight = FontWeight.Bold) }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = onTextChange,
+                enabled = !isUpdating,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 132.dp)
+                    .focusRequester(textFocusRequester)
+                    .testTag("result_input_field"),
+                label = { Text("当前用于分析的全部文字，可继续补充") },
+                placeholder = { Text("可继续说明价格、商家说法、使用场景等") },
+                shape = RoundedCornerShape(17.dp)
+            )
+            Spacer(Modifier.height(9.dp))
+            Button(
+                onClick = onApplyText,
+                enabled = hasPendingTextChanges && inputText.isNotBlank() && !isUpdating,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 58.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Brand),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    if (hasPendingTextChanges) "用补充文字更新分析" else "文字没有新修改",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            updateMessage?.let {
+                Spacer(Modifier.height(7.dp))
+                Text(it, color = Ink, fontWeight = FontWeight.Bold, lineHeight = 21.sp)
+            }
+            Text(
+                "照片、截图和文字会合并到同一份分析中，不会互相覆盖。",
+                modifier = Modifier.padding(top = 7.dp),
+                color = Muted,
+                fontSize = 13.sp,
+                lineHeight = 19.sp
+            )
         }
     }
 }

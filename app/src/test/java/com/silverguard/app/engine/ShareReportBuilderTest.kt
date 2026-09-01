@@ -71,7 +71,7 @@ class ShareReportBuilderTest {
         )
         val report = ShareReportBuilder.build(RiskAnalyzer.analyze(link, product))
 
-        assertTrue(report.contains("【银龄安心查 · v0.3.5】"))
+        assertTrue(report.contains("【银龄安心查 · v0.3.6】"))
         assertTrue(report.contains("商品：测试理疗仪"))
         assertTrue(report.contains("页面显示价格：¥2980"))
         assertTrue(report.contains("店铺/卖家：安心旗舰店"))
