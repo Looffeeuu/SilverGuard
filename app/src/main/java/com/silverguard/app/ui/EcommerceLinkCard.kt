@@ -68,23 +68,21 @@ internal fun EcommerceLinkCard(info: EcommerceLinkInfo) {
 
 @Composable
 private fun LinkInfoRow(label: String, value: String) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
         Text(
             text = label,
-            modifier = Modifier.width(82.dp),
             color = Muted,
-            fontSize = 14.sp
+            fontSize = 13.sp
         )
         Text(
             text = value,
-            modifier = Modifier.weight(1f),
-            color = Color(0xFF24332B),
+            color = Ink,
             fontWeight = FontWeight.Medium,
-            lineHeight = 20.sp
+            lineHeight = 22.sp
         )
     }
 }

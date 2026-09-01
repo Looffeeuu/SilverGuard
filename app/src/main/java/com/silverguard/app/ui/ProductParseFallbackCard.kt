@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -53,7 +54,7 @@ internal fun ProductParseFallbackCard(
                     onClick = { onOpenProductPage(openUrl) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp),
+                        .heightIn(min = 58.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Brand),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -65,7 +66,7 @@ internal fun ProductParseFallbackCard(
                 onClick = onSelectScreenshot,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
+                    .heightIn(min = 58.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text("选择商品截图", fontSize = 17.sp, fontWeight = FontWeight.Bold)

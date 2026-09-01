@@ -108,6 +108,7 @@ private fun ScreenshotComparisonRow(comparison: OfficialScreenshotComparison) {
     }
 }
 
+@Composable
 private fun comparisonStatusColor(status: ScreenshotComparisonStatus): Color = when (status) {
     ScreenshotComparisonStatus.MATCHED -> SoftGreen
     ScreenshotComparisonStatus.POSSIBLE_MISMATCH -> SoftRed

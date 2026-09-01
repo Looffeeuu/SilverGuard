@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -202,7 +203,7 @@ private fun OutcomeChoice(
     if (selected) {
         Button(
             onClick = onClick,
-            modifier = modifier.height(52.dp),
+            modifier = modifier.heightIn(min = 52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Brand),
             shape = RoundedCornerShape(14.dp)
         ) {
@@ -211,7 +212,7 @@ private fun OutcomeChoice(
     } else {
         OutlinedButton(
             onClick = onClick,
-            modifier = modifier.height(52.dp),
+            modifier = modifier.heightIn(min = 52.dp),
             shape = RoundedCornerShape(14.dp)
         ) {
             Text(text, fontWeight = FontWeight.Bold)

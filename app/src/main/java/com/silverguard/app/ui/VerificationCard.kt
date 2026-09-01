@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +50,13 @@ internal fun VerificationCard(
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {
-            Text("③ 官方信息核验", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink)
+            Text(
+                "③ 官方信息核验",
+                modifier = Modifier.semantics { heading() },
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink
+            )
             Spacer(Modifier.height(10.dp))
 
             Surface(
@@ -159,7 +167,7 @@ private fun ReadyVerificationContent(
             enabled = !isOfficialScreenshotOcrRunning,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
+                .heightIn(min = 58.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Brand),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -232,7 +240,7 @@ private fun NotReadyVerificationContent(
         onClick = onRetry,
         modifier = Modifier
             .fillMaxWidth()
-            .height(58.dp),
+            .heightIn(min = 58.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Brand),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -253,19 +261,17 @@ private fun VerificationSourceAndTime(result: VerificationResult) {
 
 @Composable
 private fun VerificationDetailRow(label: String, value: String) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.Top
+            .padding(vertical = 4.dp)
     ) {
-        Text(label, modifier = Modifier.width(104.dp), color = Muted, fontSize = 14.sp)
+        Text(label, color = Muted, fontSize = 13.sp)
         Text(
             value,
-            modifier = Modifier.weight(1f),
             color = Ink,
             fontWeight = FontWeight.SemiBold,
-            lineHeight = 21.sp
+            lineHeight = 22.sp
         )
     }
 }
@@ -280,6 +286,7 @@ private fun statusExplanation(status: VerificationStatus): String = when (status
     VerificationStatus.ERROR -> "你记录为官方页面暂时无法访问，可以稍后重试或请家人协助。"
 }
 
+@Composable
 private fun verificationStatusColor(result: VerificationResult): Color = when {
     result.manualRecord?.hasMismatch == true -> SoftRed
     result.hasUnresolvedScreenshotMismatch -> SoftRed

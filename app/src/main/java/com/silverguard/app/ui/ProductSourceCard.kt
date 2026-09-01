@@ -86,18 +86,17 @@ private fun formatTime(timestamp: Long): String =
 
 @Composable
 private fun SourceRow(label: String, value: String) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp)
     ) {
-        Text(label, modifier = Modifier.width(90.dp), color = Muted, fontSize = 14.sp)
+        Text(label, color = Muted, fontSize = 13.sp)
         Text(
             value,
-            modifier = Modifier.weight(1f),
             color = Ink,
             fontWeight = FontWeight.SemiBold,
-            lineHeight = 21.sp
+            lineHeight = 22.sp
         )
     }
 }
