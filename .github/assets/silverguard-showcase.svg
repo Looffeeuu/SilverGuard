@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960" role="img" aria-labelledby="title desc">
+  <title id="title">SilverGuard interface overview</title>
+  <desc id="desc">Three mobile screens showing the home page, risk result, and local history</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f3f8f5"/><stop offset="1" stop-color="#d8e9df"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#173c2d" flood-opacity=".18"/>
+    </filter>
+    <style>
+      .cn{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif}.ink{fill:#14241c}.muted{fill:#466253}.white{fill:#fff}.brand{fill:#176b4d}.panel{fill:#fff;stroke:#587666;stroke-width:2}.soft{fill:#d4eadd;stroke:#587666;stroke-width:2}.label{font-size:17px;font-weight:700}.small{font-size:14px}.body{font-size:16px}.title{font-size:27px;font-weight:800}
+    </style>
+  </defs>
+  <rect width="1600" height="960" rx="42" fill="url(#bg)"/>
+  <circle cx="90" cy="100" r="160" fill="#176b4d" opacity=".06"/>
+  <circle cx="1510" cy="850" r="230" fill="#176b4d" opacity=".07"/>
+  <text x="800" y="65" text-anchor="middle" class="cn ink" font-size="34" font-weight="800">简单输入，清楚结论，可追溯核验</text>
+  <text x="800" y="101" text-anchor="middle" class="cn muted" font-size="18">老人友好的消费风险初筛与官方信息核验辅助</text>
+
+  <g transform="translate(105 142)" filter="url(#shadow)">
+    <rect width="400" height="750" rx="44" fill="#122019"/><rect x="10" y="10" width="380" height="730" rx="36" fill="#e5eee8"/><rect x="146" y="22" width="108" height="20" rx="10" fill="#122019"/>
+    <g transform="translate(32 64)">
+      <rect width="48" height="48" rx="14" class="brand"/><text x="24" y="34" text-anchor="middle" class="cn white" font-size="23" font-weight="800">安</text>
+      <text x="61" y="22" class="cn ink label">银龄安心查</text><text x="61" y="43" class="cn muted small">消费前，多一次核验</text>
+      <rect y="66" width="160" height="46" rx="18" fill="none" stroke="#587666" stroke-width="2"/><rect x="176" y="66" width="160" height="46" rx="18" fill="none" stroke="#587666" stroke-width="2"/>
+      <text x="80" y="95" text-anchor="middle" class="cn muted label">大字：关</text><text x="256" y="95" text-anchor="middle" class="cn muted label">高对比：关</text>
+      <rect y="132" width="336" height="168" rx="26" class="brand"/>
+      <text x="24" y="182" class="cn white title">这个东西，</text><text x="24" y="221" class="cn white title">买之前先查一下。</text>
+      <text x="24" y="257" class="cn white body">拍包装、选截图或粘贴链接。</text><text x="24" y="282" class="cn white body">先看风险，再去官方平台核对。</text>
+      <text y="340" class="cn ink" font-size="21" font-weight="800">选择一种查询方式</text>
+      <rect y="358" width="336" height="62" rx="20" class="brand"/><text x="168" y="397" text-anchor="middle" class="cn white label">拍商品包装</text>
+      <rect y="433" width="336" height="62" rx="20" fill="none" stroke="#587666" stroke-width="2"/><text x="168" y="472" text-anchor="middle" class="cn muted label">选择商品截图</text>
+      <rect y="508" width="336" height="62" rx="20" fill="none" stroke="#587666" stroke-width="2"/><text x="168" y="547" text-anchor="middle" class="cn muted label">粘贴链接 / 手动输入</text>
+      <text y="602" class="cn muted body">图片文字在手机本地识别</text>
+      <rect y="630" width="336" height="54" rx="18" class="soft"/><text x="18" y="663" class="cn ink small">重要说明：结果用于消费风险辅助判断</text>
+    </g>
+  </g>
+
+  <g transform="translate(600 142)" filter="url(#shadow)">
+    <rect width="400" height="750" rx="44" fill="#122019"/><rect x="10" y="10" width="380" height="730" rx="36" fill="#e5eee8"/><rect x="146" y="22" width="108" height="20" rx="10" fill="#122019"/>
+    <g transform="translate(32 64)">
+      <rect width="158" height="48" rx="18" fill="none" stroke="#587666" stroke-width="2"/><rect x="176" width="160" height="48" rx="18" class="brand"/>
+      <text x="79" y="31" text-anchor="middle" class="cn muted label">返回首页</text><text x="256" y="31" text-anchor="middle" class="cn white label">历史记录</text>
+      <rect y="67" width="336" height="110" rx="22" class="panel"/>
+      <text x="18" y="95" class="cn muted small">继续补充分析信息</text><text x="18" y="126" class="cn ink body">当前已综合：文字、照片、截图</text>
+      <rect x="18" y="140" width="88" height="25" rx="9" fill="#d4eadd"/><rect x="124" y="140" width="88" height="25" rx="9" fill="#d4eadd"/><rect x="230" y="140" width="88" height="25" rx="9" fill="#d4eadd"/>
+      <text x="62" y="158" text-anchor="middle" class="cn muted small">拍照</text><text x="168" y="158" text-anchor="middle" class="cn muted small">截图</text><text x="274" y="158" text-anchor="middle" class="cn muted small">文字</text>
+      <rect y="194" width="336" height="290" rx="26" class="soft"/>
+      <text x="20" y="224" class="cn muted small">综合结果 · 一般消费品</text><text x="20" y="263" class="cn ink title">暂未发现明显高风险</text>
+      <rect x="18" y="285" width="300" height="117" rx="18" fill="#fff"/>
+      <text x="36" y="317" class="cn muted body">宣传风险</text><text x="266" y="317" class="cn ink label">低</text>
+      <text x="36" y="349" class="cn muted body">商品信息</text><text x="238" y="349" class="cn ink label">不完整</text>
+      <text x="36" y="381" class="cn muted body">官方核验</text><text x="205" y="381" class="cn ink label">缺少核验信息</text>
+      <text x="20" y="431" class="cn ink body" font-weight="700">没有命中明显风险词，仍建议核对</text><text x="20" y="458" class="cn muted small">辅助分数：0/100（不是真假结论）</text>
+      <rect y="501" width="336" height="94" rx="22" class="panel"/>
+      <text x="18" y="534" class="cn ink" font-size="21" font-weight="800">现在先做什么</text><text x="18" y="563" class="cn muted body">补充包装信息，再前往官方来源核对</text>
+      <rect y="612" width="336" height="54" rx="18" fill="none" stroke="#587666" stroke-width="2"/><text x="168" y="646" text-anchor="middle" class="cn muted label">显示详细信息</text>
+      <rect y="676" width="336" height="48" rx="18" class="brand"/><text x="168" y="707" text-anchor="middle" class="cn white label">发给家人一起看看</text>
+    </g>
+  </g>
+
+  <g transform="translate(1095 142)" filter="url(#shadow)">
+    <rect width="400" height="750" rx="44" fill="#122019"/><rect x="10" y="10" width="380" height="730" rx="36" fill="#e5eee8"/><rect x="146" y="22" width="108" height="20" rx="10" fill="#122019"/>
+    <g transform="translate(32 64)">
+      <rect width="158" height="48" rx="18" fill="none" stroke="#587666" stroke-width="2"/><rect x="176" width="160" height="48" rx="18" class="brand"/>
+      <text x="79" y="31" text-anchor="middle" class="cn muted label">返回首页</text><text x="256" y="31" text-anchor="middle" class="cn white label">历史记录</text>
+      <text y="104" class="cn ink title">历史记录</text><text y="135" class="cn muted small">只存本机，最多保留最近 50 条</text>
+      <rect y="158" width="336" height="58" rx="15" fill="none" stroke="#587666" stroke-width="2"/><text x="18" y="194" class="cn muted body">找商品名或输入过的文字</text>
+      <rect y="232" width="132" height="44" rx="17" fill="none" stroke="#587666" stroke-width="2"/><text x="66" y="260" text-anchor="middle" class="cn muted small" font-weight="700">清空历史记录</text>
+      <rect y="296" width="336" height="174" rx="22" class="panel"/>
+      <text x="18" y="334" class="cn ink" font-size="22" font-weight="800">普通茶杯</text><text x="18" y="366" class="cn muted small">保存于 2026-09-06 11:47</text><text x="18" y="398" class="cn ink body">当时宣传风险：低 · 文字说明</text>
+      <rect x="18" y="419" width="218" height="39" rx="15" class="brand"/><rect x="248" y="419" width="70" height="39" rx="15" fill="none" stroke="#587666" stroke-width="2"/>
+      <text x="127" y="445" text-anchor="middle" class="cn white label">打开记录</text><text x="283" y="445" text-anchor="middle" class="cn muted small" font-weight="700">删除</text>
+      <rect y="490" width="336" height="174" rx="22" class="panel"/>
+      <text x="18" y="528" class="cn ink" font-size="22" font-weight="800">保健食品宣传</text><text x="18" y="560" class="cn muted small">保存于 2026-09-05 19:20</text><text x="18" y="592" class="cn ink body">当时宣传风险：高 · 截图、文字</text>
+      <rect x="18" y="613" width="218" height="39" rx="15" class="brand"/><rect x="248" y="613" width="70" height="39" rx="15" fill="none" stroke="#587666" stroke-width="2"/>
+      <text x="127" y="639" text-anchor="middle" class="cn white label">打开记录</text><text x="283" y="639" text-anchor="middle" class="cn muted small" font-weight="700">删除</text>
+      <text x="168" y="703" text-anchor="middle" class="cn muted small">不保存原照片 · 可随时清空</text>
+    </g>
+  </g>
+</svg>

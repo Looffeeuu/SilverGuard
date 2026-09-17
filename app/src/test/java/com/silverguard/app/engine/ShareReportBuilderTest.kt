@@ -11,6 +11,10 @@ import com.silverguard.app.model.ProductDetailParseStatus
 import com.silverguard.app.model.EvidenceMatchStatus
 import com.silverguard.app.model.OfficialSearchOutcome
 import com.silverguard.app.model.VerificationEvidenceField
+import com.silverguard.app.model.AiAnalysisResult
+import com.silverguard.app.model.AiAnalysisStatus
+import com.silverguard.app.model.AiConfidence
+import com.silverguard.app.model.AiRiskInsight
 
 class ShareReportBuilderTest {
 
@@ -71,12 +75,39 @@ class ShareReportBuilderTest {
         )
         val report = ShareReportBuilder.build(RiskAnalyzer.analyze(link, product))
 
-        assertTrue(report.contains("【银龄安心查 · v0.3.6】"))
+        assertTrue(report.contains("【银龄安心查 · v0.5.0】"))
         assertTrue(report.contains("商品：测试理疗仪"))
         assertTrue(report.contains("页面显示价格：¥2980"))
         assertTrue(report.contains("店铺/卖家：安心旗舰店"))
         assertTrue(report.contains("解析状态：已读取商品信息"))
         assertTrue(report.contains("商品名称来源：商品页面公开信息"))
+    }
+
+    @Test
+    fun reportContainsAiInsightAndCautiousDisclaimer() {
+        val initial = RiskAnalyzer.analyze("七天降血糖，不用吃药")
+        val analysis = initial.copy(
+            aiAnalysis = AiAnalysisResult(
+                status = AiAnalysisStatus.SUCCESS,
+                insight = AiRiskInsight(
+                    summary = "宣传包含需要重点核对的疾病功效承诺。",
+                    implicitClaims = listOf("短期改善疾病"),
+                    persuasionTactics = listOf("确定期限承诺"),
+                    verificationQuestions = listOf("登记用途是否包含该疾病？"),
+                    consumerAdvice = "不要自行停药，先核对登记用途。",
+                    confidence = AiConfidence.HIGH,
+                    analyzedAt = 1_000L
+                ),
+                message = "AI 深入分析已完成"
+            )
+        )
+
+        val report = ShareReportBuilder.build(analysis)
+
+        assertTrue(report.contains("【AI 深入分析】"))
+        assertTrue(report.contains("宣传包含需要重点核对的疾病功效承诺"))
+        assertTrue(report.contains("AI 仅根据发送的文字进行辅助理解"))
+        assertTrue(report.contains("不代表商品真假或官方结论"))
     }
 
     @Test

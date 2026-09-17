@@ -46,7 +46,8 @@ internal fun VerificationCard(
     onRetry: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {

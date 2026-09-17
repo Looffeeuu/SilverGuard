@@ -1,0 +1,9 @@
+.dev.vars
+.env
+.env.*
+node_modules/
+.wrangler/
+.edgeone/
+edgeone/.edgeone/
+cloudbase/cloudbaserc.json
+cloudbase/.env

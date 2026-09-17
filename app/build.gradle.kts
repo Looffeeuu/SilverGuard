@@ -1,7 +1,22 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val silverGuardLocalProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.inputStream().use(::load)
+    }
+}
+
+fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+// Cloud AI is paused for the offline 0.5 release; existing local proxy settings are preserved.
+val silverGuardAiEnabled = silverGuardLocalProperties.getProperty("SILVERGUARD_AI_ENABLED", "false") == "true"
 
 android {
     namespace = "com.silverguard.app"
@@ -11,13 +26,31 @@ android {
         applicationId = "com.silverguard.app"
         minSdk = 23
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.3.6"
+        versionCode = 13
+        versionName = "0.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "SILVERGUARD_AI_ENABLED", silverGuardAiEnabled.toString())
+        buildConfigField(
+            "String",
+            "SILVERGUARD_AI_PROXY_URL",
+            (if (silverGuardAiEnabled) silverGuardLocalProperties
+                .getProperty("SILVERGUARD_AI_PROXY_URL", "")
+                .trim() else "")
+                .asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "SILVERGUARD_AI_PROXY_TOKEN",
+            (if (silverGuardAiEnabled) silverGuardLocalProperties
+                .getProperty("SILVERGUARD_AI_PROXY_TOKEN", "")
+                .trim() else "")
+                .asBuildConfigString()
+        )
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {

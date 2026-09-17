@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -46,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,11 +85,20 @@ import com.silverguard.app.engine.OfficialScreenshotAnalyzer
 import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.ShareReportBuilder
 import com.silverguard.app.engine.SpeechSummaryBuilder
+import com.silverguard.app.engine.PriceReferenceEvaluator
 import com.silverguard.app.model.AnalysisInputMethod
+import com.silverguard.app.model.AiAnalysisResult
+import com.silverguard.app.model.AiAnalysisStatus
 import com.silverguard.app.model.RiskAnalysis
+import com.silverguard.app.model.AnalysisHistoryEntry
+import com.silverguard.app.data.AnalysisHistoryRepository
+import com.silverguard.app.network.AiProviderFactory
 import com.silverguard.app.network.TaobaoTmallProductResolver
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private const val PREFS_NAME = "silverguard_accessibility"
 private const val PREF_LARGE_TEXT = "large_text"
@@ -144,8 +155,19 @@ private fun SilverGuardContent(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val productResolver = remember { TaobaoTmallProductResolver() }
+    val aiProvider = remember { AiProviderFactory.create() }
     val speaker = rememberResultSpeaker()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val historyRepository = remember { AnalysisHistoryRepository(context.applicationContext) }
+    var historyEntries by remember { mutableStateOf(historyRepository.list()) }
+    var historyStorageMessage by remember {
+        mutableStateOf<String?>(if (historyRepository.loadFailed) "历史文件暂时无法读取，原文件已保留。可重启应用再试，或确认清空后重新记录。" else null)
+    }
+    var showHistory by remember { mutableStateOf(false) }
+    var activeHistoryId by remember { mutableStateOf<String?>(null) }
+    var restoredHistoryTime by remember { mutableStateOf<Long?>(null) }
+    val contentScroll = rememberScrollState()
+    var ocrRequestVersion by remember { mutableStateOf(0) }
 
     var inputText by rememberSaveable { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
@@ -155,6 +177,12 @@ private fun SilverGuardContent(
     var isProductLoading by remember { mutableStateOf(false) }
     var analysisJob by remember { mutableStateOf<Job?>(null) }
     var analysisRequestVersion by remember { mutableStateOf(0) }
+    var aiJob by remember { mutableStateOf<Job?>(null) }
+    var aiRequestVersion by remember { mutableStateOf(0) }
+    var isAiAnalyzing by remember { mutableStateOf(false) }
+    var aiConsentGranted by remember { mutableStateOf(false) }
+    var showAiConsentDialog by remember { mutableStateOf(false) }
+    var pendingAiAnalysis by remember { mutableStateOf<RiskAnalysis?>(null) }
     var ocrMessage by remember { mutableStateOf("拍商品或选择截图后，可在手机本地识别文字") }
     var isOfficialScreenshotOcrRunning by remember { mutableStateOf(false) }
     var officialScreenshotMessage by remember { mutableStateOf("") }
@@ -171,6 +199,29 @@ private fun SilverGuardContent(
     var officialPageWasOpened by remember { mutableStateOf(false) }
     var showOfficialReturnDialog by remember { mutableStateOf(false) }
     val detectedLinkInfo = remember(inputText) { EcommerceLinkParser.parse(inputText) }
+
+    fun persistHistory() {
+        coroutineScope.launch {
+            try {
+                withContext(Dispatchers.IO) { historyRepository.persist() }
+                historyStorageMessage = null
+            } catch (_: Exception) {
+                historyStorageMessage = "历史记录暂未写入手机，请检查存储空间；关闭应用后可能丢失本次记录。"
+            }
+        }
+    }
+
+    fun saveCurrentHistory() {
+        val current = analysis ?: return
+        val id = activeHistoryId ?: return
+        val previous = historyEntries.firstOrNull { it.id == id }
+        val methods = analysisInputMethods.ifEmpty { setOf(AnalysisInputMethod.TEXT) }
+        if (previous?.analysis == current && previous.draftText == inputText && previous.inputMethods == methods) return
+        historyEntries = historyRepository.upsert(AnalysisHistoryEntry(id, System.currentTimeMillis(), current, methods, inputText))
+        persistHistory()
+    }
+
+    LaunchedEffect(analysis) { saveCurrentHistory() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -195,9 +246,61 @@ private fun SilverGuardContent(
         isProductLoading = false
     }
 
+    fun cancelAiAnalysis() {
+        aiRequestVersion += 1
+        aiJob?.cancel()
+        aiJob = null
+        isAiAnalyzing = false
+        showAiConsentDialog = false
+        pendingAiAnalysis = null
+    }
+
+    fun startAiAnalysis(current: RiskAnalysis) {
+        val provider = aiProvider
+        if (provider == null) {
+            analysis = (analysis ?: current).copy(
+                aiAnalysis = AiAnalysisResult(
+                    status = AiAnalysisStatus.NOT_CONFIGURED,
+                    message = "AI 深入分析尚未启用，本地分析结果仍可正常使用。"
+                )
+            )
+            return
+        }
+        cancelAiAnalysis()
+        val requestId = aiRequestVersion
+        isAiAnalyzing = true
+        aiJob = coroutineScope.launch {
+            val result = provider.analyze(current)
+            val latest = analysis
+            if (
+                aiRequestVersion == requestId &&
+                latest != null &&
+                latest.rawText == current.rawText
+            ) {
+                analysis = latest.copy(aiAnalysis = result)
+                isAiAnalyzing = false
+                aiJob = null
+            }
+        }
+    }
+
+    fun requestAiAnalysis(current: RiskAnalysis) {
+        if (aiProvider == null) {
+            startAiAnalysis(current)
+        } else if (aiConsentGranted) {
+            startAiAnalysis(current)
+        } else {
+            pendingAiAnalysis = current
+            showAiConsentDialog = true
+        }
+    }
+
     fun analyzeInput(text: String, inputMethod: AnalysisInputMethod? = null) {
         val requestText = text.trim()
         if (requestText.isBlank()) return
+        saveCurrentHistory()
+        if (activeHistoryId == null || restoredHistoryTime != null) activeHistoryId = UUID.randomUUID().toString()
+        restoredHistoryTime = null
         val resolvedInputMethod = inputMethod ?: if (
             EcommerceLinkParser.parse(requestText).extractedUrl != null
         ) {
@@ -208,6 +311,7 @@ private fun SilverGuardContent(
         analysisInputMethods = analysisInputMethods + resolvedInputMethod
         hasPendingTextChanges = false
         cancelProductRead()
+        cancelAiAnalysis()
         speaker.stop()
         isOfficialScreenshotOcrRunning = false
         officialScreenshotMessage = ""
@@ -233,8 +337,14 @@ private fun SilverGuardContent(
 
     fun resetAll() {
         cancelProductRead()
+        cancelAiAnalysis()
         speaker.stop()
         analysis = null
+        activeHistoryId = null
+        restoredHistoryTime = null
+        showHistory = false
+        ocrRequestVersion += 1
+        isOcrRunning = false
         inputText = ""
         selectedUri = null
         capturedBitmap = null
@@ -242,10 +352,39 @@ private fun SilverGuardContent(
         officialScreenshotMessage = ""
         ocrMessage = "拍商品或选择截图后，可在手机本地识别文字"
         showManualInput = false
+        showExamples = false
+        showOfficialReturnDialog = false
+        waitingForOfficialReturn = false
+        officialPageWasOpened = false
         isSupplementCapture = false
         isSupplementScreenshot = false
         analysisInputMethods = emptySet()
         hasPendingTextChanges = false
+        focusManager.clearFocus(force = true)
+        coroutineScope.launch { contentScroll.scrollTo(0) }
+    }
+
+    fun returnHome() {
+        saveCurrentHistory()
+        resetAll()
+    }
+
+    fun openHistoryEntry(entry: AnalysisHistoryEntry) {
+        saveCurrentHistory()
+        resetAll()
+        activeHistoryId = entry.id
+        restoredHistoryTime = entry.savedAt
+        inputText = entry.draftText
+        analysisInputMethods = entry.inputMethods
+        hasPendingTextChanges = entry.draftText != entry.analysis.rawText
+        analysis = entry.analysis
+    }
+
+    BackHandler(enabled = showHistory || analysis != null || showManualInput || isOcrRunning || isProductLoading) {
+        if (showHistory) {
+            showHistory = false
+            coroutineScope.launch { contentScroll.scrollTo(0) }
+        } else returnHome()
     }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -253,6 +392,7 @@ private fun SilverGuardContent(
     ) { uri ->
         val supplement = isSupplementScreenshot
         if (uri != null) {
+            val ocrVersion = ++ocrRequestVersion
             selectedUri = uri
             capturedBitmap = null
             isOcrRunning = true
@@ -261,6 +401,7 @@ private fun SilverGuardContent(
                 context = context,
                 uri = uri,
                 onSuccess = { text ->
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     val combined = if (supplement) {
                         CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
                     } else {
@@ -282,6 +423,7 @@ private fun SilverGuardContent(
                     }
                 },
                 onError = {
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     isOcrRunning = false
                     isSupplementScreenshot = false
                     ocrMessage = "识别失败：${it.message ?: "未知错误"}。原有文字没有被清除。"
@@ -297,6 +439,7 @@ private fun SilverGuardContent(
     ) { uri ->
         val current = analysis
         if (uri != null && current?.verification?.manualRecord != null) {
+            val ocrVersion = ocrRequestVersion
             isOfficialScreenshotOcrRunning = true
             officialScreenshotMessage = "正在本地识别官方查询截图…"
             val requestedRegistration = current.verification.registration
@@ -306,6 +449,7 @@ private fun SilverGuardContent(
                 context = context,
                 uri = uri,
                 onSuccess = { text ->
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     val latest = analysis
                     val latestRegistration = latest?.let { latestAnalysis ->
                         latestAnalysis.verification.registration.normalizedNumber.ifBlank {
@@ -331,6 +475,7 @@ private fun SilverGuardContent(
                     isOfficialScreenshotOcrRunning = false
                 },
                 onError = { error ->
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     isOfficialScreenshotOcrRunning = false
                     officialScreenshotMessage = "截图识别失败：${error.message ?: "未知错误"}。当前分析仍然保留。"
                 }
@@ -344,6 +489,7 @@ private fun SilverGuardContent(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
+            val ocrVersion = ++ocrRequestVersion
             val supplement = isSupplementCapture
             capturedBitmap = bitmap
             selectedUri = null
@@ -352,6 +498,7 @@ private fun SilverGuardContent(
             runChineseOcr(
                 bitmap = bitmap,
                 onSuccess = { text ->
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     val combined = if (supplement) {
                         CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
                     } else {
@@ -373,6 +520,7 @@ private fun SilverGuardContent(
                     }
                 },
                 onError = {
+                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
                     isOcrRunning = false
                     isSupplementCapture = false
                     ocrMessage = "识别失败：${it.message ?: "未知错误"}。当前文字和结果没有被清除。"
@@ -387,12 +535,12 @@ private fun SilverGuardContent(
         AlertDialog(
             onDismissRequest = { showResetConfirmation = false },
             title = { Text("要重新查一个商品吗？", fontWeight = FontWeight.Bold) },
-            text = { Text("当前分析和人工核对记录会被清空。大字和高对比设置会保留。") },
+            text = { Text("当前分析会保留在本机历史记录中，然后回到首页。大字和高对比设置会保留。") },
             confirmButton = {
                 Button(
                     onClick = {
                         showResetConfirmation = false
-                        resetAll()
+                        returnHome()
                     },
                     modifier = Modifier.heightIn(min = 52.dp)
                 ) { Text("确认重新查") }
@@ -402,6 +550,44 @@ private fun SilverGuardContent(
                     onClick = { showResetConfirmation = false },
                     modifier = Modifier.heightIn(min = 52.dp)
                 ) { Text("继续看当前结果") }
+            }
+        )
+    }
+
+    if (showAiConsentDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAiConsentDialog = false
+                pendingAiAnalysis = null
+            },
+            title = { Text("使用 AI 深入分析？", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("将发送已经整理的宣传文字和商品字段给智谱 AI，帮助理解话术。")
+                    Text("照片不会发送；手机号、邮箱、证件号和联系方式会先隐藏。")
+                    Text("AI 可能理解错误，也不会改变本地风险分数或代替官方核验。", color = Muted)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val pending = pendingAiAnalysis
+                        showAiConsentDialog = false
+                        pendingAiAnalysis = null
+                        aiConsentGranted = true
+                        pending?.let(::startAiAnalysis)
+                    },
+                    modifier = Modifier.heightIn(min = 52.dp)
+                ) { Text("同意并开始分析") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAiConsentDialog = false
+                        pendingAiAnalysis = null
+                    },
+                    modifier = Modifier.heightIn(min = 52.dp)
+                ) { Text("暂不使用") }
             }
         )
     }
@@ -455,17 +641,64 @@ private fun SilverGuardContent(
                 .navigationBarsPadding()
                 .imePadding()
         ) {
+            Column(Modifier.fillMaxSize()) {
+                Surface(color = Background, shadowElevation = 4.dp) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = ::returnHome,
+                            enabled = showHistory || analysis != null || showManualInput || inputText.isNotBlank() || isOcrRunning || isProductLoading,
+                            modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("return_home")
+                        ) { Text("返回首页", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+                        Button(
+                            onClick = {
+                                saveCurrentHistory()
+                                cancelProductRead()
+                                cancelAiAnalysis()
+                                speaker.stop()
+                                ocrRequestVersion += 1
+                                isOcrRunning = false
+                                isOfficialScreenshotOcrRunning = false
+                                waitingForOfficialReturn = false
+                                officialPageWasOpened = false
+                                showOfficialReturnDialog = false
+                                focusManager.clearFocus(force = true)
+                                showHistory = true
+                                coroutineScope.launch { contentScroll.scrollTo(0) }
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("open_history")
+                        ) { Text("历史记录", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+                    }
+                }
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(contentScroll)
                     .padding(
                         start = 18.dp,
                         top = 18.dp,
                         end = 18.dp,
-                        bottom = if (analysis == null) 24.dp else 116.dp
+                        bottom = 24.dp
                     )
             ) {
+                if (showHistory) {
+                    HistoryScreen(
+                        entries = historyEntries,
+                        storageMessage = historyStorageMessage,
+                        onOpen = ::openHistoryEntry,
+                        onDelete = { id ->
+                            historyEntries = historyRepository.delete(id)
+                            if (activeHistoryId == id) { resetAll(); showHistory = true }
+                            persistHistory()
+                        },
+                        onClear = {
+                            historyEntries = historyRepository.clear()
+                            resetAll()
+                            showHistory = true
+                            persistHistory()
+                        }
+                    )
+                } else {
                 BrandHeader()
                 Spacer(Modifier.height(12.dp))
                 AccessibilityControls(
@@ -547,6 +780,7 @@ private fun SilverGuardContent(
                         value = inputText,
                         onValueChange = {
                             cancelProductRead()
+                            cancelAiAnalysis()
                             speaker.stop()
                             analysis = null
                             inputText = it
@@ -605,6 +839,17 @@ private fun SilverGuardContent(
 
                 analysis?.let { current ->
                     Spacer(Modifier.height(16.dp))
+                    historyStorageMessage?.let { Text(it, color = Ink, fontWeight = FontWeight.Bold) }
+                    restoredHistoryTime?.let { time ->
+                        Card(colors = CardDefaults.cardColors(containerColor = SoftAmber, contentColor = Ink), border = CardBorder) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("历史结果 · ${historyTime(time)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.testTag("history_result_notice"))
+                                Text("这是当时保存的分析，不是刚刚重新查询。可继续补充信息，或重新分析。原照片不保留，识别文字仍在下方。", lineHeight = 23.sp)
+                                OutlinedButton(onClick = { analyzeInput(inputText) }, enabled = inputText.isNotBlank() && !isProductLoading && !isOcrRunning, modifier = Modifier.heightIn(min = 52.dp).testTag("history_reanalyze")) { Text("用当前文字重新分析") }
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     ResultInputComposer(
                         inputText = inputText,
                         inputMethods = analysisInputMethods,
@@ -637,6 +882,14 @@ private fun SilverGuardContent(
                     Spacer(Modifier.height(16.dp))
                     ResultSection(
                         analysis = current,
+                        isAiConfigured = aiProvider != null,
+                        isAiAnalyzing = isAiAnalyzing,
+                        onAnalyzeWithAi = { requestAiAnalysis(analysis ?: current) },
+                        onPriceReferenceChange = { priceInput ->
+                            val latest = analysis ?: current
+                            speaker.stop()
+                            analysis = latest.copy(priceReference = PriceReferenceEvaluator.evaluate(priceInput))
+                        },
                         onOpenOfficialSource = { source ->
                             val latest = analysis ?: current
                             analysis = latest.copy(
@@ -716,17 +969,17 @@ private fun SilverGuardContent(
                 }
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "银龄安心查 · Android MVP 0.3.6",
+                    "银龄安心查 · Android MVP 0.5.0 · 本地分析版",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
                     fontSize = 12.sp
                 )
+                }
             }
 
-            analysis?.let { current ->
+            analysis?.takeIf { !showHistory }?.let { current ->
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth(),
                     color = Background,
                     shadowElevation = 12.dp
@@ -743,6 +996,7 @@ private fun SilverGuardContent(
                         Text("发给家人一起看看", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
             }
         }
     }
@@ -767,7 +1021,8 @@ private fun ResultInputComposer(
         .joinToString("、") { it.displayName }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(22.dp)
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1050,7 +1305,8 @@ private fun ExampleButtons(onExample: (String) -> Unit) {
 @Composable
 private fun DisclaimerCard() {
     Card(
-        colors = CardDefaults.cardColors(containerColor = SoftGreen),
+        colors = CardDefaults.cardColors(containerColor = SoftGreen, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(18.dp)
     ) {
         Text(

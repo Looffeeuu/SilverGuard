@@ -28,7 +28,8 @@ internal fun ProductParseFallbackCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SoftAmber),
+        colors = CardDefaults.cardColors(containerColor = SoftAmber, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {

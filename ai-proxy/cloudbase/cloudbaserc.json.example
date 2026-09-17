@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "请填入 CloudBase 环境 ID",
+  "functionRoot": "function",
+  "functions": [
+    {
+      "name": "silverguard-ai-proxy",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 3,
+      "memorySize": 256,
+      "description": "SilverGuard AI 安全代理",
+      "envVariables": {
+        "ZHIPU_API_KEY": "仅在控制台配置，勿提交到文件",
+        "SILVERGUARD_APP_TOKEN": "仅在控制台配置，勿提交到文件",
+        "SILVERGUARD_UPSTREAM_TIMEOUT_MS": "2500"
+      }
+    }
+  ]
+}

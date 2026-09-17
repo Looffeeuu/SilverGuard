@@ -32,7 +32,8 @@ internal fun ProductSourceCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SoftGreen),
+        colors = CardDefaults.cardColors(containerColor = SoftGreen, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {

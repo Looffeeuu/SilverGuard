@@ -4,6 +4,7 @@ import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskFlag
 import com.silverguard.app.model.RiskLevel
 import com.silverguard.app.model.EcommerceProduct
+import com.silverguard.app.model.PriceReferenceInput
 
 object RiskAnalyzer {
 
@@ -135,7 +136,11 @@ object RiskAnalyzer {
                 registrationType = verification.registration.type
             ),
             ecommerceLinkInfo = ecommerceLinkInfo,
-            ecommerceProduct = ecommerceProduct
+            ecommerceProduct = ecommerceProduct,
+            priceReference = PriceReferenceEvaluator.evaluate(
+                PriceReferenceInput(askingPrice = productInfo.price.orEmpty())
+            ),
+            relatedCases = RiskCaseMatcher.match(clean)
         )
     }
 

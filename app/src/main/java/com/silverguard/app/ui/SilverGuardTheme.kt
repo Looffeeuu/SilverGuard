@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.unit.dp
 
 internal data class SilverGuardColors(
     val brand: Color,
@@ -14,17 +16,19 @@ internal data class SilverGuardColors(
     val softRed: Color,
     val softAmber: Color,
     val ink: Color,
-    val muted: Color
+    val muted: Color,
+    val outline: Color
 )
 
 internal val StandardSilverGuardColors = SilverGuardColors(
     brand = Color(0xFF176B4D),
-    background = Color(0xFFF6F8F5),
-    softGreen = Color(0xFFE8F3ED),
-    softRed = Color(0xFFFFF0EE),
-    softAmber = Color(0xFFFFF7DB),
+    background = Color(0xFFE5EEE8),
+    softGreen = Color(0xFFD4EADD),
+    softRed = Color(0xFFFFE0DA),
+    softAmber = Color(0xFFFFE9AB),
     ink = Color(0xFF16231D),
-    muted = Color(0xFF68756E)
+    muted = Color(0xFF40574B),
+    outline = Color(0xFF587666)
 )
 
 internal val HighContrastSilverGuardColors = SilverGuardColors(
@@ -34,7 +38,8 @@ internal val HighContrastSilverGuardColors = SilverGuardColors(
     softRed = Color(0xFFFFDDD8),
     softAmber = Color(0xFFFFE9A8),
     ink = Color.Black,
-    muted = Color(0xFF34443C)
+    muted = Color(0xFF243C2E),
+    outline = Color(0xFF1F4332)
 )
 
 internal val LocalSilverGuardColors = staticCompositionLocalOf {
@@ -55,6 +60,8 @@ internal val Ink: Color
     @Composable get() = LocalSilverGuardColors.current.ink
 internal val Muted: Color
     @Composable get() = LocalSilverGuardColors.current.muted
+internal val CardBorder: BorderStroke
+    @Composable get() = BorderStroke(1.dp, LocalSilverGuardColors.current.outline)
 
 @Composable
 internal fun SilverGuardPaletteTheme(
@@ -64,11 +71,22 @@ internal fun SilverGuardPaletteTheme(
     val colorScheme = lightColorScheme(
         primary = colors.brand,
         onPrimary = Color.White,
+        primaryContainer = colors.softGreen,
+        onPrimaryContainer = colors.ink,
+        secondary = colors.brand,
+        onSecondary = Color.White,
+        secondaryContainer = colors.softGreen,
+        onSecondaryContainer = colors.ink,
         background = colors.background,
         onBackground = colors.ink,
         surface = Color.White,
         onSurface = colors.ink,
-        outline = colors.muted
+        surfaceVariant = colors.softGreen,
+        onSurfaceVariant = colors.muted,
+        surfaceContainer = colors.background,
+        surfaceContainerHigh = colors.softGreen,
+        outline = colors.outline,
+        outlineVariant = colors.outline
     )
     CompositionLocalProvider(LocalSilverGuardColors provides colors) {
         MaterialTheme(colorScheme = colorScheme, content = content)

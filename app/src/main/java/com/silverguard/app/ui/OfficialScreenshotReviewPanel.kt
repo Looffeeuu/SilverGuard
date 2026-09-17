@@ -35,7 +35,8 @@ internal fun OfficialScreenshotReviewPanel(review: OfficialScreenshotReview) {
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.padding(15.dp)) {
@@ -66,7 +67,8 @@ internal fun OfficialScreenshotReviewPanel(review: OfficialScreenshotReview) {
 @Composable
 private fun ScreenshotComparisonRow(comparison: OfficialScreenshotComparison) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(13.dp),
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
@@ -112,7 +114,7 @@ private fun ScreenshotComparisonRow(comparison: OfficialScreenshotComparison) {
 private fun comparisonStatusColor(status: ScreenshotComparisonStatus): Color = when (status) {
     ScreenshotComparisonStatus.MATCHED -> SoftGreen
     ScreenshotComparisonStatus.POSSIBLE_MISMATCH -> SoftRed
-    ScreenshotComparisonStatus.NOT_RECOGNIZED -> Color(0xFFF0F3F0)
+    ScreenshotComparisonStatus.NOT_RECOGNIZED -> Background
     ScreenshotComparisonStatus.NEEDS_CONFIRMATION -> SoftAmber
 }
 

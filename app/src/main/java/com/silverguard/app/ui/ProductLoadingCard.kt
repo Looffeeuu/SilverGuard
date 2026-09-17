@@ -21,7 +21,8 @@ import androidx.compose.ui.unit.sp
 internal fun ProductLoadingCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SoftGreen),
+        colors = CardDefaults.cardColors(containerColor = SoftGreen, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(18.dp)
     ) {
         Row(

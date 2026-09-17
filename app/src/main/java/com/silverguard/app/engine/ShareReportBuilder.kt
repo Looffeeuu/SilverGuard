@@ -104,9 +104,29 @@ object ShareReportBuilder {
                 """.trimIndent()
             }
             .orEmpty()
+        val aiSection = analysis.aiAnalysis.insight?.let { insight ->
+            val implicitClaims = insight.implicitClaims.joinToString("、").ifBlank { "未整理出明确隐含承诺" }
+            val persuasionTactics = insight.persuasionTactics.joinToString("、").ifBlank { "未整理出明确劝购方式" }
+            val questions = insight.verificationQuestions.joinToString("；").ifBlank { "仍需结合包装和官方信息核对" }
+            """
+                【AI 深入分析】
+                状态：已完成（判断把握：${insight.confidence.displayName}）
+                补充结论：${insight.summary}
+                隐含承诺：$implicitClaims
+                劝购方式：$persuasionTactics
+                建议核对：$questions
+                下一步：${insight.consumerAdvice}
+                来源：${insight.providerName} ${insight.modelName}
+                分析时间：${formatTime(insight.analyzedAt)}
+            """.trimIndent()
+        }.orEmpty()
+        val consumerReferenceSection = ConsumerReferenceReportBuilder.build(analysis)
+        val aiDisclaimer = if (analysis.aiAnalysis.insight != null) {
+            "AI 仅根据发送的文字进行辅助理解，可能出错，不改变本地风险分数，也不代表商品真假或官方结论。"
+        } else ""
 
         return """
-            【银龄安心查 · v0.3.6】
+            【银龄安心查 · v0.5.0】
 
             $sourceSection
 
@@ -117,6 +137,7 @@ object ShareReportBuilder {
             型号：${info.model ?: "未识别"}
             规格：${info.specification ?: "未识别"}
             注册/备案号：${info.registrationNumber ?: "未识别"}
+            已识别价格：${info.price ?: "未识别"}
 
             【风险分析】
             风险等级：${riskLevelText(analysis.level)}（${analysis.score}/100）
@@ -131,12 +152,17 @@ object ShareReportBuilder {
             $screenshotSection
             $manualSection
 
+            $aiSection
+
+            $consumerReferenceSection
+
             【建议】
             $advice
 
             当前结果为消费风险辅助判断，不代表行政认定、医学诊断或官方认证。
             查询截图由手机本地 OCR 辅助比对，可能识别错误，不代表已自动查询官方数据库。
             人工核对内容由用户根据官方页面记录，不代表 SilverGuard 已自动连接或验证官方数据库。
+            $aiDisclaimer
         """.trimIndent()
     }
 

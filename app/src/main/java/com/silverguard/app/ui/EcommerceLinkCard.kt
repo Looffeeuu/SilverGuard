@@ -28,8 +28,10 @@ internal fun EcommerceLinkCard(info: EcommerceLinkInfo) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSupported) SoftGreen else SoftAmber
+            containerColor = if (isSupported) SoftGreen else SoftAmber,
+            contentColor = Ink
         ),
+        border = CardBorder,
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(Modifier.padding(16.dp)) {

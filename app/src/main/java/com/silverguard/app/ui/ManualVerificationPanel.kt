@@ -40,11 +40,12 @@ internal fun ManualVerificationPanel(
         record.searchOutcome == OfficialSearchOutcome.RECORD_NOT_FOUND -> SoftAmber
         record.searchOutcome == OfficialSearchOutcome.PAGE_UNAVAILABLE -> SoftAmber
         record.searchOutcome == OfficialSearchOutcome.RECORD_FOUND -> SoftGreen
-        else -> Color(0xFFF8FAF8)
+        else -> Background
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = panelColor),
+        colors = CardDefaults.cardColors(containerColor = panelColor, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.padding(15.dp)) {
@@ -145,7 +146,8 @@ private fun FindingRow(
     onRecordFinding: (VerificationEvidenceField, EvidenceMatchStatus) -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(13.dp),
         modifier = Modifier.padding(bottom = 8.dp)
     ) {

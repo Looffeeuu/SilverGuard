@@ -44,10 +44,16 @@ import com.silverguard.app.model.RiskLevel
 import com.silverguard.app.model.SupplementAction
 import com.silverguard.app.model.VerificationEvidenceField
 import com.silverguard.app.model.VerificationStatus
+import com.silverguard.app.BuildConfig
+import com.silverguard.app.model.PriceReferenceInput
 
 @Composable
 internal fun ResultSection(
     analysis: RiskAnalysis,
+    isAiConfigured: Boolean,
+    isAiAnalyzing: Boolean,
+    onAnalyzeWithAi: () -> Unit,
+    onPriceReferenceChange: (PriceReferenceInput) -> Unit,
     onOpenOfficialSource: (OfficialSource) -> Unit,
     onSelectOfficialScreenshot: () -> Unit,
     isOfficialScreenshotOcrRunning: Boolean,
@@ -82,6 +88,16 @@ internal fun ResultSection(
         onSpeakResult = onSpeakResult,
         onStopSpeaking = onStopSpeaking
     )
+
+    if (BuildConfig.SILVERGUARD_AI_ENABLED) {
+        Spacer(Modifier.height(12.dp))
+        AiAnalysisCard(
+            analysis = analysis,
+            isConfigured = isAiConfigured,
+            isAnalyzing = isAiAnalyzing,
+            onAnalyze = onAnalyzeWithAi
+        )
+    }
 
     Spacer(Modifier.height(12.dp))
     SupplementSuggestionCard(
@@ -169,6 +185,12 @@ internal fun ResultSection(
         )
 
         Spacer(Modifier.height(12.dp))
+        PriceReferenceCard(analysis.priceReference, onPriceReferenceChange)
+
+        Spacer(Modifier.height(12.dp))
+        RelatedCasesCard(analysis.relatedCases, onOpenProductPage)
+
+        Spacer(Modifier.height(12.dp))
         InfoCard("其他操作") {
             OutlinedButton(
                 onClick = onReset,
@@ -192,7 +214,8 @@ private fun ResultSummary(analysis: RiskAnalysis) {
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = background),
+        colors = CardDefaults.cardColors(containerColor = background, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(Modifier.padding(20.dp)) {
@@ -238,7 +261,8 @@ private fun NextActionCard(
     onStopSpeaking: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -287,7 +311,8 @@ private fun SupplementSuggestionCard(
     supplementMessage: String
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = if (informationIsLimited) SoftAmber else SoftGreen),
+        colors = CardDefaults.cardColors(containerColor = if (informationIsLimited) SoftAmber else SoftGreen, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -429,7 +454,8 @@ private fun RiskSignals(analysis: RiskAnalysis, skip: Int) {
 @Composable
 private fun ConflictCard(title: String, matched: String, explanation: String) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = SoftRed),
+        colors = CardDefaults.cardColors(containerColor = SoftRed, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.padding(bottom = 9.dp)
     ) {
@@ -447,7 +473,8 @@ private fun ConflictCard(title: String, matched: String, explanation: String) {
 @Composable
 private fun RiskFlagCard(title: String, matched: String, explanation: String) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = SoftAmber),
+        colors = CardDefaults.cardColors(containerColor = SoftAmber, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
@@ -463,7 +490,8 @@ private fun RiskFlagCard(title: String, matched: String, explanation: String) {
 @Composable
 private fun InfoCard(title: String, content: @Composable () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White, contentColor = Ink),
+        border = CardBorder,
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(Modifier.padding(18.dp)) {

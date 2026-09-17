@@ -34,6 +34,15 @@ object SpeechSummaryBuilder {
             RiskLevel.MEDIUM -> "建议先核对企业、型号、规格和登记用途，再决定是否购买。"
             RiskLevel.LOW -> "当前未发现明显高风险，但商品资质、功效和价格仍需自行核对。"
         }
-        return "银龄安心查结果。${analysis.title}。宣传风险为${riskLevel}。$signalText。$verificationText。$action"
+        val aiText = analysis.aiAnalysis.insight?.let { insight ->
+            "AI补充分析认为，${insight.summary}。"
+        }.orEmpty()
+        val priceText = if (analysis.priceReference.hasRange) {
+            "价格参考：${analysis.priceReference.status.displayName}。仅依据你录入的报价。"
+        } else ""
+        val caseText = if (analysis.relatedCases.isNotEmpty()) {
+            "本地资料中有相似话术提醒，可展开详细信息查看，不代表当前商品属于案例对象。"
+        } else ""
+        return "银龄安心查结果。${analysis.title}。宣传风险为${riskLevel}。$signalText。$verificationText。$aiText$priceText$caseText$action"
     }
 }
