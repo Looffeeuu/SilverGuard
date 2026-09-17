@@ -25,11 +25,17 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          SDKMANAGER="$(command -v sdkmanager)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager was not found on the GitHub-hosted runner."
+            exit 1
+          fi
 
-      - name: Install Android 37 platform
-        run: sdkmanager "platforms;android-37"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
