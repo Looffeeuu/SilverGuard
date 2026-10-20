@@ -1,0 +1,72 @@
+[
+  {"id": "hc01", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "产品名称：安心牌维生素C咀嚼片\n保健食品注册号：国食健注G20150123\n保健功能：补充维生素C\n适宜人群：需要补充维生素C的成人\n注意事项：本品不能代替药物"},
+  {"id": "hc02", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "保健食品不是药物，不能代替药物治疗疾病。本品不宜超过推荐量服用。", "note": "法定警示语"},
+  {"id": "hc03", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "【保健功能】辅助降血脂\n【不适宜人群】少年儿童、孕妇\n【注意事项】本品不能代替药物，血脂异常者请遵医嘱", "note": "获批保健功能的正常表述"},
+  {"id": "hc04", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "钙维生素D软胶囊 食健备G202032001234 每日1粒 本品不具有疾病预防、治疗功能"},
+  {"id": "hc05", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "蛋白粉 净含量：400g 配料：大豆分离蛋白、乳清蛋白 生产企业：安心营养品有限公司 执行标准：GB/T 29602"},
+  {"id": "hc06", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "鱼油软胶囊，保健功能：辅助降血脂。保健食品不是药物，不能代替药物\n治疗疾病。", "note": "OCR 把警示语拆成两行"},
+  {"id": "hc07", "category": "health_compliant", "expected": "LOW", "source": "synthetic", "text": "褪黑素维生素B6片，保健功能：改善睡眠。本品不能代替药物，失眠严重者请及时就医。"},
+
+  {"id": "dl01", "category": "drug_label", "expected": "LOW", "source": "synthetic", "text": "布洛芬缓释胶囊 国药准字H10900089 适应症：用于缓解轻至中度疼痛如头痛、关节痛"},
+  {"id": "dl02", "category": "drug_label", "expected": "LOW", "source": "synthetic", "text": "硝苯地平控释片 国药准字H20000079 适应症：用于治疗高血压、心绞痛。请按医嘱服用，不可自行停药。", "note": "药品说明书写明治疗用途是正常的"},
+  {"id": "dl03", "category": "drug_label", "expected": "LOW", "source": "synthetic", "text": "二甲双胍片 国药准字H20023370 用于单纯饮食控制不满意的2型糖尿病患者，可降血糖。处方药，请在医生指导下使用。", "note": "药品说明书写明治疗用途是正常的"},
+  {"id": "dl04", "category": "drug_label", "expected": "LOW", "source": "synthetic", "text": "感冒灵颗粒 国药准字Z44021940 功能主治：解热镇痛。用于感冒引起的头痛、发热"},
+
+  {"id": "dv01", "category": "device", "expected": "LOW", "source": "synthetic", "text": "商品名称：颈椎治疗仪\n医疗器械注册证编号：苏械注准20202090123\n适用范围：用于颈椎病的辅助理疗"},
+  {"id": "dv02", "category": "device", "expected": "LOW", "source": "synthetic", "text": "电子血压计 型号：U10K 医疗器械注册证编号：粤械注准20172070123 适用于成人家庭血压测量"},
+  {"id": "dv03", "category": "device", "expected": "LOW", "source": "synthetic", "text": "医用冷敷贴 苏械备20210045号 适用于闭合性软组织的物理退热、冷敷"},
+  {"id": "dv04", "category": "device", "expected": "HIGH", "source": "synthetic", "text": "家用颈椎治疗仪，贴上就能根治颈椎病，不用吃药不用打针，今天下单立减500"},
+  {"id": "dv05", "category": "device", "expected": "HIGH", "source": "adapted: SAMR 2025 典型案例话术", "text": "太赫兹理疗仪，每天照20分钟，疏通血管，清除血栓，专家推荐，最后3台"},
+
+  {"id": "hf01", "category": "health_false_claim", "expected": "HIGH", "source": "adapted: SAMR 2025 典型案例话术", "text": "这款保健品七天降血糖，不用吃药，糖尿病也能逆转"},
+  {"id": "hf02", "category": "health_false_claim", "expected": "HIGH", "source": "synthetic", "text": "纯中药配方，根治鼻炎，无效退款，仅限今天"},
+  {"id": "hf03", "category": "health_false_claim", "expected": "HIGH", "source": "synthetic", "text": "富硒胶囊抗癌防癌，教授推荐，加微信领取试用装"},
+  {"id": "hf04", "category": "health_false_claim", "expected": "HIGH", "source": "synthetic", "text": "这个口服液能替代药物，老年人吃了不用看医生"},
+  {"id": "hf05", "category": "health_false_claim", "expected": "HIGH", "source": "synthetic", "text": "保健酒每天一杯，降血压降血脂，祖传秘方"},
+  {"id": "hf06", "category": "health_false_claim", "expected": "MEDIUM", "source": "synthetic", "text": "排毒养颜胶囊，三天见效，百分百有效", "note": "夸大功效但未宣称治病"},
+  {"id": "hf07", "category": "health_false_claim", "expected": "HIGH", "source": "synthetic", "text": "灵芝孢子粉治疗肿瘤效果好，很多病友已经停药了"},
+  {"id": "hf08", "category": "health_false_claim", "expected": "HIGH", "source": "adapted: SAMR 2025 典型案例话术", "text": "免费体验三天，听讲座送鸡蛋，这款保健品能治愈心脑血管疾病，进群领取名额"},
+
+  {"id": "hs01", "category": "health_soft_signal", "expected": "MEDIUM", "source": "synthetic", "text": "纳米能量水杯，喝水也能养生，航天技术"},
+  {"id": "hs02", "category": "health_soft_signal", "expected": "MEDIUM", "source": "synthetic", "text": "量子负离子手环，央视推荐"},
+  {"id": "hs03", "category": "health_soft_signal", "expected": "MEDIUM", "source": "adapted: SAMR/CCA 2025 私域直播消费提示", "text": "专家推荐的养生茶，仅限今天特价，扫码进群了解"},
+  {"id": "hs04", "category": "health_soft_signal", "expected": "MEDIUM", "source": "synthetic", "text": "细胞修复精华，院士团队研发"},
+  {"id": "hs05", "category": "health_soft_signal", "expected": "MEDIUM", "source": "adapted: SAMR 2025 典型案例话术", "text": "养生讲座名额有限，联系助理报名，到场送礼品", "note": "礼品引流 + 私域"},
+  {"id": "hs06", "category": "health_soft_signal", "expected": "MEDIUM", "source": "synthetic", "text": "经络共振按摩椅，立刻见效"},
+
+  {"id": "en01", "category": "energy", "expected": "MEDIUM", "source": "synthetic", "text": "家用节电器，插上就省电，电费减少30%"},
+  {"id": "en02", "category": "energy", "expected": "HIGH", "source": "synthetic", "text": "节电宝插上省电60%，三个月回本，仅限今天，最后5台", "note": "核心虚假承诺 + 催促付款"},
+  {"id": "en03", "category": "energy", "expected": "LOW", "source": "synthetic", "text": "一级能效变频空调，APF 5.30，年耗电量约 980 千瓦时"},
+  {"id": "en04", "category": "energy", "expected": "LOW", "source": "synthetic", "text": "智能插座，支持定时开关和用电统计"},
+
+  {"id": "iv01", "category": "investment_scam", "expected": "HIGH", "source": "adapted: NFRA 湖北局 2026 风险提示", "text": "退休赚钱好项目，保本保息，月入过万"},
+  {"id": "iv02", "category": "investment_scam", "expected": "HIGH", "source": "synthetic", "text": "内部项目，零风险，日赚300，私聊老师带你操作"},
+  {"id": "iv03", "category": "investment_scam", "expected": "HIGH", "source": "adapted: NFRA 湖北局 2026 风险提示", "text": "养老理财，年化收益15%稳赚不赔，名额仅限今天"},
+  {"id": "iv04", "category": "investment_scam", "expected": "HIGH", "source": "synthetic", "text": "躺赚副业，扫码进群，百分百保证收益"},
+
+  {"id": "ic01", "category": "investment_compliant", "expected": "LOW", "source": "synthetic", "text": "理财非存款，产品有风险，投资须谨慎。本产品为非保本浮动收益型产品。", "note": "合规风险揭示"},
+  {"id": "ic02", "category": "investment_compliant", "expected": "LOW", "source": "synthetic", "text": "本基金不保本，过往业绩不代表未来表现。", "note": "合规风险揭示"},
+  {"id": "ic03", "category": "investment_compliant", "expected": "LOW", "source": "synthetic", "text": "储蓄国债：三年期票面利率2.38%，由财政部发行"},
+  {"id": "ic04", "category": "investment_compliant", "expected": "LOW", "source": "synthetic", "text": "银行定期存款，受存款保险保障，年利率1.5%"},
+
+  {"id": "or01", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "纯棉毛巾 面料：100%棉 规格：34×76cm"},
+  {"id": "or02", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "超市鸡蛋 30枚装 25.9元"},
+  {"id": "or03", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "限时秒杀！洗衣液 3kg 两瓶装 39.9元", "note": "普通促销，没有功效承诺"},
+  {"id": "or04", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "老花镜 +200度 树脂镜片 防蓝光"},
+  {"id": "or05", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "羊毛衫 含毛量100％ 手洗"},
+  {"id": "or06", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "电饭煲 4L 智能预约 一级能效"},
+  {"id": "or07", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "运动鞋 防滑耐磨 适合中老年散步"},
+  {"id": "or08", "category": "ordinary", "expected": "LOW", "source": "synthetic", "text": "护膝 加热款 USB充电 冬季保暖"},
+
+  {"id": "wt01", "category": "warning_text", "expected": "LOW", "source": "synthetic", "text": "市场监管提示：任何保健品都不能治疗疾病，不能代替药物。", "note": "用户粘贴的防骗提示"},
+  {"id": "wt02", "category": "warning_text", "expected": "LOW", "source": "synthetic", "text": "提醒家里老人：没有零风险的投资，承诺保本高收益的都要警惕。", "note": "用户粘贴的防骗提示"},
+  {"id": "wt03", "category": "warning_text", "expected": "LOW", "source": "synthetic", "text": "医生说降压药不能随便停药，保健品不能替代药物。", "note": "用户粘贴的防骗提示"},
+  {"id": "wt04", "category": "warning_text", "expected": "LOW", "source": "synthetic", "text": "警惕“包治百病”的宣传，遇到要求加微信私聊的推销员要多留心。", "note": "用户粘贴的防骗提示"},
+
+  {"id": "ev01", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "磁疗床垫睡一觉就能治好高血压，已经帮几千位老人停了降压药", "note": "规则词表之外的治病和停药说法"},
+  {"id": "ev02", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "吃了这个，血糖稳稳的，胰岛素都不用打了"},
+  {"id": "ev03", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "告别药罐子！三个疗程，关节炎彻底好了"},
+  {"id": "ev04", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "养老公寓项目，每年返利12%，到期还本，介绍朋友再拿提成"},
+  {"id": "ev05", "category": "evasive_wording", "expected": "MEDIUM", "source": "synthetic", "text": "张教授亲自坐诊，名额只剩最后几个"},
+  {"id": "ev06", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "这款酵素清血管、降三高，比吃药还管用"}
+]

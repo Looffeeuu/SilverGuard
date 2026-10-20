@@ -141,6 +141,7 @@ cd SilverGuard
 - [架构与关键决策](docs/ARCHITECTURE.md)
 - [隐私与能力边界](docs/PRIVACY_AND_LIMITATIONS.md)
 - [版本历程](docs/RELEASE_NOTES.md)
+- [风险规则评测集](docs/RISK_EVALUATION.md)
 
 ---
 
