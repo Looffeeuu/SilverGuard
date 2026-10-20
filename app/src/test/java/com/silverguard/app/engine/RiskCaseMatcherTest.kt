@@ -19,6 +19,10 @@ class RiskCaseMatcherTest {
         assertTrue(RiskCaseMatcher.match("药品可用于治疗疾病").isEmpty())
     }
 
+    @Test fun mandatoryDisclaimerDoesNotMatchHealthClaimCase() {
+        assertTrue(RiskCaseMatcher.match("保健食品不是药物，不能代替药物治疗疾病").isEmpty())
+    }
+
     @Test fun giftsAloneDoNotImplyPrivateSales() {
         assertTrue(RiskCaseMatcher.match("超市鸡蛋10元").isEmpty())
         assertEquals("gift-private-sales", RiskCaseMatcher.match("免费送鸡蛋，加微信进群").single().case.id)

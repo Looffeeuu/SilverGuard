@@ -7,7 +7,7 @@ import com.silverguard.app.model.RegistrationType
 object ClaimRegistrationConflictAnalyzer {
 
     private val treatmentClaims = Regex(
-        "治疗|治愈|根治|降血糖|治(?:疗)?高血压|不用吃药|无需吃药|替代药物|消炎|治鼻炎|改善鼻炎|修复疾病|抗癌"
+        "治疗(?![仪器])|治愈|根治|降血糖|治(?:疗)?高血压|不用吃药|无需吃药|替代药物|消炎|治鼻炎|改善鼻炎|修复疾病|抗癌"
     )
     private val replacementClaims = Regex("不用吃药|无需吃药|替代药物|停药|不用看医生")
 
@@ -15,7 +15,7 @@ object ClaimRegistrationConflictAnalyzer {
         text: String,
         registrationType: RegistrationType
     ): List<ClaimRegistrationConflict> {
-        val matchedClaims = treatmentClaims.findAll(text)
+        val matchedClaims = AffirmedClaimMatcher.findAll(treatmentClaims, text)
             .map { it.value }
             .distinct()
             .toList()
@@ -23,7 +23,7 @@ object ClaimRegistrationConflictAnalyzer {
 
         val shouldWarn = when (registrationType) {
             RegistrationType.DRUG_APPROVAL -> false
-            RegistrationType.MEDICAL_DEVICE -> replacementClaims.containsMatchIn(text)
+            RegistrationType.MEDICAL_DEVICE -> AffirmedClaimMatcher.find(replacementClaims, text) != null
             RegistrationType.HEALTH_FOOD,
             RegistrationType.COSMETIC,
             RegistrationType.UNKNOWN -> true

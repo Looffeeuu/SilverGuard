@@ -7,7 +7,7 @@ object RiskCaseMatcher {
     fun match(text: String): List<RiskCaseMatch> {
         val material = UrlAnalysisSanitizer.stripUrlsForAnalysis(text)
         return RiskCaseRepository.cases.mapNotNull { case ->
-            val terms = case.termGroups.map { group -> group.firstOrNull { material.contains(it, ignoreCase = true) } }
+            val terms = case.termGroups.map { group -> group.firstOrNull { AffirmedClaimMatcher.containsTerm(material, it) } }
             if (terms.any { it == null }) null else RiskCaseMatch(case, terms.filterNotNull().distinct())
         }.take(3)
     }

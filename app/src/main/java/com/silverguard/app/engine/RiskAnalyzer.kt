@@ -19,7 +19,8 @@ object RiskAnalyzer {
         Rule(
             "疾病治疗或强功效承诺",
             26,
-            Regex("根治|治愈|治疗|抗癌|降血糖|降血压|疏通血管|清除血栓|改善鼻炎|排毒|逆转糖尿病"),
+            // A device name such as "颈椎治疗仪" is not by itself a treatment claim.
+            Regex("根治|治愈|治疗(?![仪器])|抗癌|降血糖|降血压|疏通血管|清除血栓|改善鼻炎|排毒|逆转糖尿病"),
             "出现疾病治疗或强功效承诺。普通保健食品、一般商品不能因为广告话术就视为具有治疗效果。"
         ),
         Rule(
@@ -31,7 +32,8 @@ object RiskAnalyzer {
         Rule(
             "绝对承诺 / 短期见效",
             18,
-            Regex("百分百|100%|保证有效|一定有效|包治|无效退款|立刻见效|七天见效|三天见效"),
+            // Bare "100%" also appears in fabric and purity labels, so only promise phrases count.
+            Regex("(?:百分之?百|100\\s*[%％])(?:有效|见效|治愈|根治|康复|安全|放心)|保证有效|一定有效|包治|无效退款|立刻见效|七天见效|三天见效"),
             "使用绝对化、短期见效或保证有效的承诺，需要进一步核验证据。"
         ),
         Rule(
@@ -85,7 +87,7 @@ object RiskAnalyzer {
         var score = 0
 
         rules.forEach { rule ->
-            val match = rule.regex.find(clean)
+            val match = AffirmedClaimMatcher.find(rule.regex, clean)
             if (match != null) {
                 flags += RiskFlag(
                     type = rule.type,
