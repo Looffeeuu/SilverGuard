@@ -71,6 +71,7 @@ class RiskAnalyzerTest {
         assertTrue(flagTypes("纯度100％，百分百原装进口").isEmpty())
         assertTrue("绝对承诺 / 短期见效" in flagTypes("100%有效"))
         assertTrue("绝对承诺 / 短期见效" in flagTypes("百分之百治愈"))
+        assertTrue("绝对承诺 / 短期见效" in flagTypes("百分百保证收益"))
     }
 
     @Test
