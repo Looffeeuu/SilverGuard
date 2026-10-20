@@ -21,6 +21,33 @@ class ClaimRegistrationConflictAnalyzerTest {
     }
 
     @Test
+    fun mandatoryHealthFoodDisclaimerDoesNotTriggerConflict() {
+        val conflicts = ClaimRegistrationConflictAnalyzer.analyze(
+            text = "保健食品不是药物，不能代替药物治疗疾病",
+            registrationType = RegistrationType.HEALTH_FOOD
+        )
+
+        assertTrue(conflicts.isEmpty())
+    }
+
+    @Test
+    fun medicalDeviceWarnsOnlyWhenReplacementIsAffirmed() {
+        assertTrue(
+            ClaimRegistrationConflictAnalyzer.analyze(
+                text = "可以辅助治疗颈椎病，使用期间不能停药",
+                registrationType = RegistrationType.MEDICAL_DEVICE
+            ).isEmpty()
+        )
+        assertEquals(
+            1,
+            ClaimRegistrationConflictAnalyzer.analyze(
+                text = "治疗颈椎病，用了就可以停药",
+                registrationType = RegistrationType.MEDICAL_DEVICE
+            ).size
+        )
+    }
+
+    @Test
     fun ordinaryProductWithoutRegistrationNumberIsNotAutomaticallyHighRisk() {
         val analysis = RiskAnalyzer.analyze(
             "商品名称：家用清洁杯\n生产企业：安心日用品有限公司\n规格：500毫升"
