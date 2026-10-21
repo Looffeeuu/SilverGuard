@@ -160,6 +160,34 @@ class RiskAnalyzerTest {
     }
 
     @Test
+    fun rephrasedCureAndStopMedicineClaimsAreHighRisk() {
+        val analysis = RiskAnalyzer.analyze("磁疗床垫睡一觉就能治好高血压，已经帮几千位老人停了降压药")
+
+        assertEquals(RiskLevel.HIGH, analysis.level)
+        assertFalse(analysis.claimConflicts.isEmpty())
+        assertTrue("替代正规治疗" in flagTypes("这款酵素降三高，比吃药还管用"))
+        assertTrue("替代正规治疗" in flagTypes("吃了以后胰岛素都不用打了"))
+    }
+
+    @Test
+    fun medicineWordingInNoticesIsNotAClaim() {
+        assertTrue(flagTypes("药店通知：因系统升级，暂停药品网上销售一天").isEmpty())
+        assertTrue(flagTypes("高血压患者请遵医嘱用药，不要自行停药或减量").isEmpty())
+    }
+
+    @Test
+    fun bondRepaymentIsNotAPrincipalPromise() {
+        assertTrue(flagTypes("储蓄国债三年期，到期还本付息").isEmpty())
+        assertTrue("异常赚钱承诺" in flagTypes("养老公寓项目，到期还本"))
+    }
+
+    @Test
+    fun onlyShortPaybackPromisesAreFlagged() {
+        assertTrue("异常节电承诺" in flagTypes("节电宝三个月回本"))
+        assertTrue(flagTypes("光伏板安装后大约六年回本").isEmpty())
+    }
+
+    @Test
     fun twoDigitReturnIsAMoneyPromiseButBondRatesAreNot() {
         assertTrue("异常赚钱承诺" in flagTypes("养老理财，年化收益15%"))
         assertTrue("异常赚钱承诺" in flagTypes("每年返利12%"))

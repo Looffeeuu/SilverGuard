@@ -146,9 +146,9 @@ class RiskRuleEvaluationTest {
     }
 
     private companion object {
-        const val BASELINE_EXACT = 56
+        const val BASELINE_EXACT = 73
         const val BASELINE_FALSE_ALARMS = 0
-        const val BASELINE_MISSED = 6
-        const val BASELINE_UNDER_RATED = 2
+        const val BASELINE_MISSED = 2
+        const val BASELINE_UNDER_RATED = 0
     }
 }
