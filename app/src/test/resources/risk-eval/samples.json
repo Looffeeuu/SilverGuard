@@ -72,5 +72,18 @@
   {"id": "wt06", "category": "warning_text", "expected": "HIGH", "source": "synthetic", "text": "谨防假冒！认准安心牌，三个月根治颈椎病，不用吃药", "note": "警示词在另一分句，治病承诺仍应报警"},
   {"id": "wt07", "category": "warning_text", "expected": "HIGH", "source": "synthetic", "text": "警惕三高危害，这款茶能降血压降血糖，仅限今天", "note": "借警示语开头的推销"},
   {"id": "ic05", "category": "investment_compliant", "expected": "MEDIUM", "source": "synthetic", "text": "本产品不保本，但年化收益18%，内部渠道才能买", "note": "有风险揭示，但收益率异常"},
-  {"id": "ev06", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "这款酵素清血管、降三高，比吃药还管用"}
+  {"id": "ev06", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "这款酵素清血管、降三高，比吃药还管用"},
+
+  {"id": "hn01", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "社区通知：周六上午专家义诊进社区，免费量血压、测血糖", "note": "正规社区活动，与“坐诊推销”区分"},
+  {"id": "hn02", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "超市会员日，到店消费满50元送鸡蛋一盒", "note": "普通超市促销"},
+  {"id": "hn03", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "储蓄国债（凭证式）三年期，到期还本付息，可提前兑取"},
+  {"id": "hn04", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "高血压患者请遵医嘱用药，不要自行停药或减量"},
+  {"id": "hn05", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "药店通知：因系统升级，暂停药品网上销售一天"},
+  {"id": "hn06", "category": "hard_negative", "expected": "LOW", "source": "synthetic", "text": "光伏板安装后大约六年回本，具体以当地日照和电价为准", "note": "正规投资回收期说明"},
+
+  {"id": "ho01", "category": "holdout", "expected": "HIGH", "source": "synthetic", "text": "喝了半年，糖尿病完全好了，药也停了", "note": "未针对它调整规则"},
+  {"id": "ho02", "category": "holdout", "expected": "HIGH", "source": "synthetic", "text": "坚持喝三个月，血压稳了，降压药都扔了", "note": "未针对它调整规则"},
+  {"id": "ho03", "category": "holdout", "expected": "HIGH", "source": "synthetic", "text": "老中医祖传方子，专治痛风，一个疗程断根", "note": "未针对它调整规则"},
+  {"id": "ho04", "category": "holdout", "expected": "HIGH", "source": "synthetic", "text": "投资养老项目，每月分红，拉一个人头奖励两千", "note": "未针对它调整规则"},
+  {"id": "ho05", "category": "holdout", "expected": "MEDIUM", "source": "synthetic", "text": "名医把脉，到场就送米面油，名额不多", "note": "未针对它调整规则"}
 ]

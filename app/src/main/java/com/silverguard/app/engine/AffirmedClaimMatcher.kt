@@ -16,7 +16,7 @@ object AffirmedClaimMatcher {
     // A negation cue followed by at most six characters without crossing a clause boundary.
     // OCR line breaks are removed first because packaging text often wraps mid-sentence.
     private val negationBeforeClaim = Regex(
-        "(?:不能|不可|不会|不得|不宜|无法|并非|不是|没有|并不|不具有|不具备|禁止|切勿|请勿)[^，,。；;！!？?]{0,6}$"
+        "(?:不能|不可|不会|不得|不宜|不要|千万别|无法|并非|不是|没有|并不|不具有|不具备|禁止|切勿|请勿)[^，,。；;！!？?]{0,6}$"
     )
 
     // Ambiguous words such as "小心" and "当心" ("当心血管…") are left out on purpose.
