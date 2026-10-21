@@ -68,5 +68,9 @@
   {"id": "ev03", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "告别药罐子！三个疗程，关节炎彻底好了"},
   {"id": "ev04", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "养老公寓项目，每年返利12%，到期还本，介绍朋友再拿提成"},
   {"id": "ev05", "category": "evasive_wording", "expected": "MEDIUM", "source": "synthetic", "text": "张教授亲自坐诊，名额只剩最后几个"},
+  {"id": "wt05", "category": "warning_text", "expected": "LOW", "source": "synthetic", "text": "防骗小贴士：听到“稳赚不赔”“日赚300”就是诈骗套路，要提防。", "note": "用户粘贴的防骗提示"},
+  {"id": "wt06", "category": "warning_text", "expected": "HIGH", "source": "synthetic", "text": "谨防假冒！认准安心牌，三个月根治颈椎病，不用吃药", "note": "警示词在另一分句，治病承诺仍应报警"},
+  {"id": "wt07", "category": "warning_text", "expected": "HIGH", "source": "synthetic", "text": "警惕三高危害，这款茶能降血压降血糖，仅限今天", "note": "借警示语开头的推销"},
+  {"id": "ic05", "category": "investment_compliant", "expected": "MEDIUM", "source": "synthetic", "text": "本产品不保本，但年化收益18%，内部渠道才能买", "note": "有风险揭示，但收益率异常"},
   {"id": "ev06", "category": "evasive_wording", "expected": "HIGH", "source": "synthetic", "text": "这款酵素清血管、降三高，比吃药还管用"}
 ]

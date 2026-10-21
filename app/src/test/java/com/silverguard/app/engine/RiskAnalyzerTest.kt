@@ -141,6 +141,25 @@ class RiskAnalyzerTest {
     }
 
     @Test
+    fun principalRiskDisclosureIsNotAMoneyPromise() {
+        assertTrue(flagTypes("本基金不保本，过往业绩不代表未来表现。").isEmpty())
+        assertTrue(flagTypes("本产品为非保本浮动收益型产品").isEmpty())
+        assertTrue("异常赚钱承诺" in flagTypes("养老项目保本保息"))
+    }
+
+    @Test
+    fun scamWordingQuotedInsideAWarningIsIgnored() {
+        assertTrue(flagTypes("提醒家里老人：承诺保本高收益的都要警惕。").isEmpty())
+        assertTrue(flagTypes("警惕“包治百病”的宣传，遇到要求加微信私聊的推销员要多留心。").isEmpty())
+    }
+
+    @Test
+    fun warningCueOnlyCoversItsOwnClause() {
+        assertEquals(RiskLevel.HIGH, RiskAnalyzer.analyze("谨防假冒！认准安心牌，三个月根治颈椎病，不用吃药").level)
+        assertTrue("疾病治疗或强功效承诺" in flagTypes("警惕三高危害，这款茶能降血压"))
+    }
+
+    @Test
     fun twoDigitReturnIsAMoneyPromiseButBondRatesAreNot() {
         assertTrue("异常赚钱承诺" in flagTypes("养老理财，年化收益15%"))
         assertTrue("异常赚钱承诺" in flagTypes("每年返利12%"))

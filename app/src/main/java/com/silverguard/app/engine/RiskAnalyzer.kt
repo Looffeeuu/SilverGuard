@@ -78,7 +78,8 @@ object RiskAnalyzer {
             "异常赚钱承诺",
             30,
             // A two-digit yearly or monthly return is far above deposits and government bonds.
-            Regex("稳赚|保本|保底|零风险|日赚|月入过万|轻松月入|躺赚|退休赚钱|内部项目|(?:年化|收益率?|月息|年息|返利|回报)[^，,。；;\\d]{0,4}[1-9]\\d(?:\\.\\d+)?\\s*[%％]"),
+            // "不保本" and "非保本" are compliant risk disclosures, not promises.
+            Regex("稳赚|(?<![不非])保本|(?<![不非])保底|零风险|日赚|月入过万|轻松月入|躺赚|退休赚钱|内部项目|(?:年化|收益率?|月息|年息|返利|回报)[^，,。；;\\d]{0,4}[1-9]\\d(?:\\.\\d+)?\\s*[%％]"),
             "固定收益、零风险、轻松赚钱等承诺属于高风险信号，需要核验收费、返利和拉人模式。"
         ),
         Rule(
