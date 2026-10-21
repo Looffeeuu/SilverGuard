@@ -81,4 +81,32 @@ class RiskAnalyzerTest {
         assertEquals(RiskLevel.HIGH, analysis.level)
         assertFalse(analysis.claimConflicts.isEmpty())
     }
+
+    @Test
+    fun distinctWordingsWithinOneRuleAccumulate() {
+        val flag = RiskAnalyzer.analyze("内部项目，零风险，日赚300").flags.single()
+
+        assertEquals("异常赚钱承诺", flag.type)
+        assertEquals("内部项目、零风险、日赚", flag.matched)
+        assertEquals(30 + 15 + 15, flag.weight)
+        assertEquals(RiskLevel.HIGH, RiskAnalyzer.analyze("内部项目，零风险，日赚300").level)
+    }
+
+    @Test
+    fun repeatingTheSameWordAddsNothing() {
+        assertEquals(30, RiskAnalyzer.analyze("稳赚！稳赚！稳赚！").score)
+    }
+
+    @Test
+    fun extraHitsAreCappedAtTwo() {
+        assertEquals(60, RiskAnalyzer.analyze("稳赚 保本 零风险 日赚 躺赚").flags.single().weight)
+    }
+
+    @Test
+    fun twoDigitReturnIsAMoneyPromiseButBondRatesAreNot() {
+        assertTrue("异常赚钱承诺" in flagTypes("养老理财，年化收益15%"))
+        assertTrue("异常赚钱承诺" in flagTypes("每年返利12%"))
+        assertTrue(flagTypes("储蓄国债：三年期票面利率2.38%").isEmpty())
+        assertTrue(flagTypes("年化收益率3.2%，产品有风险").isEmpty())
+    }
 }

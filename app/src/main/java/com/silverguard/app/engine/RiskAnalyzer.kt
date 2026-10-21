@@ -8,6 +8,10 @@ import com.silverguard.app.model.PriceReferenceInput
 
 object RiskAnalyzer {
 
+    // Each additional distinct wording within one rule adds half the rule weight, up to two extras.
+    // "零风险、日赚、内部项目" then outweighs a single hit, while repeating one word adds nothing.
+    private const val MAX_EXTRA_HITS = 2
+
     private data class Rule(
         val type: String,
         val weight: Int,
@@ -63,7 +67,8 @@ object RiskAnalyzer {
         Rule(
             "异常赚钱承诺",
             30,
-            Regex("稳赚|保本|零风险|日赚|月入过万|轻松月入|躺赚|退休赚钱|内部项目"),
+            // A two-digit yearly or monthly return is far above deposits and government bonds.
+            Regex("稳赚|保本|保底|零风险|日赚|月入过万|轻松月入|躺赚|退休赚钱|内部项目|(?:年化|收益率?|月息|年息|返利|回报)[^，,。；;\\d]{0,4}[1-9]\\d(?:\\.\\d+)?\\s*[%％]"),
             "固定收益、零风险、轻松赚钱等承诺属于高风险信号，需要核验收费、返利和拉人模式。"
         ),
         Rule(
@@ -87,15 +92,19 @@ object RiskAnalyzer {
         var score = 0
 
         rules.forEach { rule ->
-            val match = AffirmedClaimMatcher.find(rule.regex, clean)
-            if (match != null) {
+            val matches = AffirmedClaimMatcher.findAll(rule.regex, clean)
+                .map { it.value }
+                .distinct()
+                .toList()
+            if (matches.isNotEmpty()) {
+                val weight = rule.weight + rule.weight / 2 * minOf(matches.size - 1, MAX_EXTRA_HITS)
                 flags += RiskFlag(
                     type = rule.type,
-                    matched = match.value,
+                    matched = matches.joinToString("、"),
                     explanation = rule.explanation,
-                    weight = rule.weight
+                    weight = weight
                 )
-                score += rule.weight
+                score += weight
             }
         }
 

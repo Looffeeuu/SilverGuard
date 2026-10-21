@@ -81,7 +81,7 @@ class RiskRuleEvaluationTest {
         val missed = outcomes.count { it.missed }
         val underRated = outcomes.count { it.underRated }
 
-        // Baseline recorded on 2026-10-20. Tighten these numbers whenever a rule change improves them.
+        // Baseline updated on 2026-10-21. Tighten these numbers whenever a rule change improves them.
         assertTrue("exact matches fell to $exact (baseline $BASELINE_EXACT)", exact >= BASELINE_EXACT)
         assertTrue("false alarms rose to $falseAlarms (baseline $BASELINE_FALSE_ALARMS)", falseAlarms <= BASELINE_FALSE_ALARMS)
         assertTrue("missed rose to $missed (baseline $BASELINE_MISSED)", missed <= BASELINE_MISSED)
@@ -146,9 +146,9 @@ class RiskRuleEvaluationTest {
     }
 
     private companion object {
-        const val BASELINE_EXACT = 40
+        const val BASELINE_EXACT = 43
         const val BASELINE_FALSE_ALARMS = 6
-        const val BASELINE_MISSED = 7
-        const val BASELINE_UNDER_RATED = 7
+        const val BASELINE_MISSED = 6
+        const val BASELINE_UNDER_RATED = 5
     }
 }
