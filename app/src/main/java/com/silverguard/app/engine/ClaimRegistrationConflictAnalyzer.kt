@@ -7,7 +7,8 @@ import com.silverguard.app.model.RegistrationType
 object ClaimRegistrationConflictAnalyzer {
 
     private val treatmentClaims = Regex(
-        "治疗(?![仪器])|治愈|根治|降血糖|治(?:疗)?高血压|不用吃药|无需吃药|替代药物|消炎|治鼻炎|改善鼻炎|修复疾病|抗癌"
+        "治疗(?![仪器])|治愈|根治|降血糖|降血压|治(?:疗)?高血压|不用吃药|无需吃药|替代药物|消炎|治鼻炎|改善鼻炎|" +
+            "修复疾病|抗癌|疏通血管|清除血栓|逆转糖尿病"
     )
     private val replacementClaims = Regex("不用吃药|无需吃药|替代药物|停药|不用看医生")
 
