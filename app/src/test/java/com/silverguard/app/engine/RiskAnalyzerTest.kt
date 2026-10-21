@@ -103,6 +103,44 @@ class RiskAnalyzerTest {
     }
 
     @Test
+    fun drugLabelIndicationIsNotATreatmentClaim() {
+        val analysis = RiskAnalyzer.analyze("硝苯地平控释片 国药准字H20000079 适应症：用于治疗高血压，可降血压")
+
+        assertEquals(RiskLevel.LOW, analysis.level)
+        assertTrue(analysis.flags.isEmpty())
+    }
+
+    @Test
+    fun cureWordingStaysFlaggedEvenWithDrugNumber() {
+        val flag = RiskAnalyzer.analyze("国药准字H20000079 用于治疗高血压，三个月根治").flags
+            .single { it.type == "疾病治疗或强功效承诺" }
+        assertEquals("根治", flag.matched)
+    }
+
+    @Test
+    fun registeredDeviceMayStateItsIndication() {
+        val analysis = RiskAnalyzer.analyze("颈椎牵引器 医疗器械注册证编号：苏械注准20202090123 用于治疗颈椎病")
+
+        assertEquals(RiskLevel.LOW, analysis.level)
+        assertTrue(analysis.claimConflicts.isEmpty())
+    }
+
+    @Test
+    fun singleTreatmentClaimOnNonDrugIsHighRisk() {
+        val noRegistration = RiskAnalyzer.analyze("保健酒每天一杯，降血压")
+        assertEquals(RiskLevel.HIGH, noRegistration.level)
+        assertTrue(noRegistration.score >= 55)
+
+        val healthFood = RiskAnalyzer.analyze("保健食品注册号：国食健注G20150123 本品可以治疗糖尿病")
+        assertEquals(RiskLevel.HIGH, healthFood.level)
+    }
+
+    @Test
+    fun exaggerationWithoutDiseaseClaimIsNotForcedToHigh() {
+        assertEquals(RiskLevel.MEDIUM, RiskAnalyzer.analyze("排毒养颜胶囊，三天见效").level)
+    }
+
+    @Test
     fun twoDigitReturnIsAMoneyPromiseButBondRatesAreNot() {
         assertTrue("异常赚钱承诺" in flagTypes("养老理财，年化收益15%"))
         assertTrue("异常赚钱承诺" in flagTypes("每年返利12%"))

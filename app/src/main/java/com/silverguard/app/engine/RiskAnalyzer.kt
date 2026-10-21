@@ -5,18 +5,26 @@ import com.silverguard.app.model.RiskFlag
 import com.silverguard.app.model.RiskLevel
 import com.silverguard.app.model.EcommerceProduct
 import com.silverguard.app.model.PriceReferenceInput
+import com.silverguard.app.model.RegistrationType
 
 object RiskAnalyzer {
 
     // Each additional distinct wording within one rule adds half the rule weight, up to two extras.
     // "零风险、日赚、内部项目" then outweighs a single hit, while repeating one word adds nothing.
     private const val MAX_EXTRA_HITS = 2
+    private const val HIGH_THRESHOLD = 55
+    private const val MEDIUM_THRESHOLD = 25
+
+    // Drugs and medical devices may state their registered indications, such as "用于治疗高血压".
+    private val indicationRegistrations = setOf(RegistrationType.DRUG_APPROVAL, RegistrationType.MEDICAL_DEVICE)
 
     private data class Rule(
         val type: String,
         val weight: Int,
         val regex: Regex,
-        val explanation: String
+        val explanation: String,
+        /** Wording that is a normal indication once a drug or device registration number is found. */
+        val registeredIndication: Regex? = null
     )
 
     private val rules = listOf(
@@ -25,7 +33,9 @@ object RiskAnalyzer {
             26,
             // A device name such as "颈椎治疗仪" is not by itself a treatment claim.
             Regex("根治|治愈|治疗(?![仪器])|抗癌|降血糖|降血压|疏通血管|清除血栓|改善鼻炎|排毒|逆转糖尿病"),
-            "出现疾病治疗或强功效承诺。普通保健食品、一般商品不能因为广告话术就视为具有治疗效果。"
+            "出现疾病治疗或强功效承诺。普通保健食品、一般商品不能因为广告话术就视为具有治疗效果。",
+            // Cure promises such as "根治" stay flagged even with a registration number.
+            registeredIndication = Regex("治疗|降血糖|降血压|改善鼻炎|疏通血管")
         ),
         Rule(
             "替代正规治疗",
@@ -88,6 +98,20 @@ object RiskAnalyzer {
         val clean = listOf(localText, ecommerceText)
             .filter { it.isNotBlank() }
             .joinToString("\n")
+        val localProductInfo = ProductInfoExtractor.extract(localText)
+        val productInfo = ecommerceProduct?.let { product ->
+            EcommerceProductToProductInfoMapper.merge(
+                preferred = localProductInfo,
+                fallback = EcommerceProductToProductInfoMapper.toProductInfo(product)
+            )
+        } ?: localProductInfo
+        val verification = VerificationPlanner.plan(productInfo)
+        val registrationType = verification.registration.type
+        val claimConflicts = ClaimRegistrationConflictAnalyzer.analyze(
+            text = clean,
+            registrationType = registrationType
+        )
+
         val flags = mutableListOf<RiskFlag>()
         var score = 0
 
@@ -95,6 +119,10 @@ object RiskAnalyzer {
             val matches = AffirmedClaimMatcher.findAll(rule.regex, clean)
                 .map { it.value }
                 .distinct()
+                .filterNot { value ->
+                    registrationType in indicationRegistrations &&
+                        rule.registeredIndication?.matches(value) == true
+                }
                 .toList()
             if (matches.isNotEmpty()) {
                 val weight = rule.weight + rule.weight / 2 * minOf(matches.size - 1, MAX_EXTRA_HITS)
@@ -109,11 +137,14 @@ object RiskAnalyzer {
         }
 
         if (flags.size >= 3) score += 8
+        // Treatment claims beyond what the product's registration allows mean "pause before paying",
+        // even when only one rule matched.
+        if (claimConflicts.isNotEmpty()) score = score.coerceAtLeast(HIGH_THRESHOLD)
         score = score.coerceAtMost(100)
 
         val level = when {
-            score >= 55 -> RiskLevel.HIGH
-            score >= 25 -> RiskLevel.MEDIUM
+            score >= HIGH_THRESHOLD -> RiskLevel.HIGH
+            score >= MEDIUM_THRESHOLD -> RiskLevel.MEDIUM
             else -> RiskLevel.LOW
         }
 
@@ -124,14 +155,6 @@ object RiskAnalyzer {
         }
 
         val category = classify(clean)
-        val localProductInfo = ProductInfoExtractor.extract(localText)
-        val productInfo = ecommerceProduct?.let { product ->
-            EcommerceProductToProductInfoMapper.merge(
-                preferred = localProductInfo,
-                fallback = EcommerceProductToProductInfoMapper.toProductInfo(product)
-            )
-        } ?: localProductInfo
-        val verification = VerificationPlanner.plan(productInfo)
 
         return RiskAnalysis(
             rawText = clean,
@@ -142,10 +165,7 @@ object RiskAnalyzer {
             flags = flags,
             productInfo = productInfo,
             verification = verification,
-            claimConflicts = ClaimRegistrationConflictAnalyzer.analyze(
-                text = clean,
-                registrationType = verification.registration.type
-            ),
+            claimConflicts = claimConflicts,
             ecommerceLinkInfo = ecommerceLinkInfo,
             ecommerceProduct = ecommerceProduct,
             priceReference = PriceReferenceEvaluator.evaluate(
