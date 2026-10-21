@@ -47,7 +47,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,37 +74,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
-import com.silverguard.app.engine.CaptureGuidanceEvaluator
 import com.silverguard.app.engine.EcommerceLinkParser
-import com.silverguard.app.engine.ManualVerificationRecorder
-import com.silverguard.app.engine.OfficialScreenshotAnalyzer
-import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.ShareReportBuilder
-import com.silverguard.app.engine.SpeechSummaryBuilder
-import com.silverguard.app.engine.PriceReferenceEvaluator
 import com.silverguard.app.model.AnalysisInputMethod
-import com.silverguard.app.model.AiAnalysisResult
-import com.silverguard.app.model.AiAnalysisStatus
 import com.silverguard.app.model.RiskAnalysis
-import com.silverguard.app.model.AnalysisHistoryEntry
-import com.silverguard.app.data.AnalysisHistoryRepository
-import com.silverguard.app.network.AiProviderFactory
-import com.silverguard.app.network.TaobaoTmallProductResolver
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 private const val PREFS_NAME = "silverguard_accessibility"
 private const val PREF_LARGE_TEXT = "large_text"
 private const val PREF_HIGH_CONTRAST = "high_contrast"
 
 @Composable
-fun SilverGuardApp() {
+fun SilverGuardApp(viewModel: SilverGuardViewModel) {
     val context = LocalContext.current
     val preferences = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -128,6 +108,7 @@ fun SilverGuardApp() {
     CompositionLocalProvider(LocalDensity provides appDensity) {
         SilverGuardPaletteTheme(palette) {
             SilverGuardContent(
+                vm = viewModel,
                 largeText = largeText,
                 highContrast = highContrast,
                 onLargeTextChange = { enabled ->
@@ -146,6 +127,7 @@ fun SilverGuardApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SilverGuardContent(
+    vm: SilverGuardViewModel,
     largeText: Boolean,
     highContrast: Boolean,
     onLargeTextChange: (Boolean) -> Unit,
@@ -154,392 +136,65 @@ private fun SilverGuardContent(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
-    val productResolver = remember { TaobaoTmallProductResolver() }
-    val aiProvider = remember { AiProviderFactory.create() }
-    val speaker = rememberResultSpeaker()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val historyRepository = remember { AnalysisHistoryRepository(context.applicationContext) }
-    var historyEntries by remember { mutableStateOf(historyRepository.list()) }
-    var historyStorageMessage by remember {
-        mutableStateOf<String?>(if (historyRepository.loadFailed) "历史文件暂时无法读取，原文件已保留。可重启应用再试，或确认清空后重新记录。" else null)
-    }
-    var showHistory by remember { mutableStateOf(false) }
-    var activeHistoryId by remember { mutableStateOf<String?>(null) }
-    var restoredHistoryTime by remember { mutableStateOf<Long?>(null) }
     val contentScroll = rememberScrollState()
-    var ocrRequestVersion by remember { mutableStateOf(0) }
+    val speaker = vm.speaker
+    val detectedLinkInfo = remember(vm.inputText) { EcommerceLinkParser.parse(vm.inputText) }
 
-    var inputText by rememberSaveable { mutableStateOf("") }
-    var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var analysis by remember { mutableStateOf<RiskAnalysis?>(null) }
-    var isOcrRunning by remember { mutableStateOf(false) }
-    var isProductLoading by remember { mutableStateOf(false) }
-    var analysisJob by remember { mutableStateOf<Job?>(null) }
-    var analysisRequestVersion by remember { mutableStateOf(0) }
-    var aiJob by remember { mutableStateOf<Job?>(null) }
-    var aiRequestVersion by remember { mutableStateOf(0) }
-    var isAiAnalyzing by remember { mutableStateOf(false) }
-    var aiConsentGranted by remember { mutableStateOf(false) }
-    var showAiConsentDialog by remember { mutableStateOf(false) }
-    var pendingAiAnalysis by remember { mutableStateOf<RiskAnalysis?>(null) }
-    var ocrMessage by remember { mutableStateOf("拍商品或选择截图后，可在手机本地识别文字") }
-    var isOfficialScreenshotOcrRunning by remember { mutableStateOf(false) }
-    var officialScreenshotMessage by remember { mutableStateOf("") }
-    var showManualInput by rememberSaveable { mutableStateOf(false) }
-    var showExamples by rememberSaveable { mutableStateOf(false) }
-    var isSupplementCapture by remember { mutableStateOf(false) }
-    var isSupplementScreenshot by remember { mutableStateOf(false) }
-    var analysisInputMethods by remember {
-        mutableStateOf<Set<AnalysisInputMethod>>(emptySet())
-    }
-    var hasPendingTextChanges by remember { mutableStateOf(false) }
-    var showResetConfirmation by remember { mutableStateOf(false) }
-    var waitingForOfficialReturn by remember { mutableStateOf(false) }
-    var officialPageWasOpened by remember { mutableStateOf(false) }
-    var showOfficialReturnDialog by remember { mutableStateOf(false) }
-    val detectedLinkInfo = remember(inputText) { EcommerceLinkParser.parse(inputText) }
-
-    fun persistHistory() {
-        coroutineScope.launch {
-            try {
-                withContext(Dispatchers.IO) { historyRepository.persist() }
-                historyStorageMessage = null
-            } catch (_: Exception) {
-                historyStorageMessage = "历史记录暂未写入手机，请检查存储空间；关闭应用后可能丢失本次记录。"
-            }
-        }
+    fun scrollToTop() {
+        coroutineScope.launch { contentScroll.scrollTo(0) }
     }
 
-    fun saveCurrentHistory() {
-        val current = analysis ?: return
-        val id = activeHistoryId ?: return
-        val previous = historyEntries.firstOrNull { it.id == id }
-        val methods = analysisInputMethods.ifEmpty { setOf(AnalysisInputMethod.TEXT) }
-        if (previous?.analysis == current && previous.draftText == inputText && previous.inputMethods == methods) return
-        historyEntries = historyRepository.upsert(AnalysisHistoryEntry(id, System.currentTimeMillis(), current, methods, inputText))
-        persistHistory()
+    fun analyze(text: String, inputMethod: AnalysisInputMethod? = null) {
+        focusManager.clearFocus(force = true)
+        vm.analyzeInput(text, inputMethod)
     }
 
-    LaunchedEffect(analysis) { saveCurrentHistory() }
+    fun returnHome() {
+        vm.returnHome()
+        focusManager.clearFocus(force = true)
+        scrollToTop()
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (
-                event == Lifecycle.Event.ON_RESUME &&
-                waitingForOfficialReturn &&
-                officialPageWasOpened
-            ) {
-                showOfficialReturnDialog = true
-                waitingForOfficialReturn = false
-                officialPageWasOpened = false
-            }
+            if (event == Lifecycle.Event.ON_RESUME) vm.onAppResumed()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    fun cancelProductRead() {
-        analysisRequestVersion += 1
-        analysisJob?.cancel()
-        analysisJob = null
-        isProductLoading = false
-    }
-
-    fun cancelAiAnalysis() {
-        aiRequestVersion += 1
-        aiJob?.cancel()
-        aiJob = null
-        isAiAnalyzing = false
-        showAiConsentDialog = false
-        pendingAiAnalysis = null
-    }
-
-    fun startAiAnalysis(current: RiskAnalysis) {
-        val provider = aiProvider
-        if (provider == null) {
-            analysis = (analysis ?: current).copy(
-                aiAnalysis = AiAnalysisResult(
-                    status = AiAnalysisStatus.NOT_CONFIGURED,
-                    message = "AI 深入分析尚未启用，本地分析结果仍可正常使用。"
-                )
-            )
-            return
-        }
-        cancelAiAnalysis()
-        val requestId = aiRequestVersion
-        isAiAnalyzing = true
-        aiJob = coroutineScope.launch {
-            val result = provider.analyze(current)
-            val latest = analysis
-            if (
-                aiRequestVersion == requestId &&
-                latest != null &&
-                latest.rawText == current.rawText
-            ) {
-                analysis = latest.copy(aiAnalysis = result)
-                isAiAnalyzing = false
-                aiJob = null
-            }
-        }
-    }
-
-    fun requestAiAnalysis(current: RiskAnalysis) {
-        if (aiProvider == null) {
-            startAiAnalysis(current)
-        } else if (aiConsentGranted) {
-            startAiAnalysis(current)
-        } else {
-            pendingAiAnalysis = current
-            showAiConsentDialog = true
-        }
-    }
-
-    fun analyzeInput(text: String, inputMethod: AnalysisInputMethod? = null) {
-        val requestText = text.trim()
-        if (requestText.isBlank()) return
-        saveCurrentHistory()
-        if (activeHistoryId == null || restoredHistoryTime != null) activeHistoryId = UUID.randomUUID().toString()
-        restoredHistoryTime = null
-        val resolvedInputMethod = inputMethod ?: if (
-            EcommerceLinkParser.parse(requestText).extractedUrl != null
-        ) {
-            AnalysisInputMethod.PRODUCT_LINK
-        } else {
-            AnalysisInputMethod.TEXT
-        }
-        analysisInputMethods = analysisInputMethods + resolvedInputMethod
-        hasPendingTextChanges = false
-        cancelProductRead()
-        cancelAiAnalysis()
-        speaker.stop()
-        isOfficialScreenshotOcrRunning = false
-        officialScreenshotMessage = ""
-        focusManager.clearFocus(force = true)
-        val requestId = analysisRequestVersion
-        val linkInfo = EcommerceLinkParser.parse(requestText)
-
-        if (!productResolver.canResolve(linkInfo)) {
-            analysis = RiskAnalyzer.analyze(requestText)
-            return
-        }
-
-        isProductLoading = true
-        analysisJob = coroutineScope.launch {
-            val product = productResolver.resolve(linkInfo)
-            if (analysisRequestVersion == requestId) {
-                analysis = RiskAnalyzer.analyze(requestText, product)
-                isProductLoading = false
-                analysisJob = null
-            }
-        }
-    }
-
-    fun resetAll() {
-        cancelProductRead()
-        cancelAiAnalysis()
-        speaker.stop()
-        analysis = null
-        activeHistoryId = null
-        restoredHistoryTime = null
-        showHistory = false
-        ocrRequestVersion += 1
-        isOcrRunning = false
-        inputText = ""
-        selectedUri = null
-        capturedBitmap = null
-        isOfficialScreenshotOcrRunning = false
-        officialScreenshotMessage = ""
-        ocrMessage = "拍商品或选择截图后，可在手机本地识别文字"
-        showManualInput = false
-        showExamples = false
-        showOfficialReturnDialog = false
-        waitingForOfficialReturn = false
-        officialPageWasOpened = false
-        isSupplementCapture = false
-        isSupplementScreenshot = false
-        analysisInputMethods = emptySet()
-        hasPendingTextChanges = false
-        focusManager.clearFocus(force = true)
-        coroutineScope.launch { contentScroll.scrollTo(0) }
-    }
-
-    fun returnHome() {
-        saveCurrentHistory()
-        resetAll()
-    }
-
-    fun openHistoryEntry(entry: AnalysisHistoryEntry) {
-        saveCurrentHistory()
-        resetAll()
-        activeHistoryId = entry.id
-        restoredHistoryTime = entry.savedAt
-        inputText = entry.draftText
-        analysisInputMethods = entry.inputMethods
-        hasPendingTextChanges = entry.draftText != entry.analysis.rawText
-        analysis = entry.analysis
-    }
-
-    BackHandler(enabled = showHistory || analysis != null || showManualInput || isOcrRunning || isProductLoading) {
-        if (showHistory) {
-            showHistory = false
-            coroutineScope.launch { contentScroll.scrollTo(0) }
+    BackHandler(enabled = vm.canGoBack) {
+        if (vm.showHistory) {
+            vm.closeHistory()
+            scrollToTop()
         } else returnHome()
     }
 
     val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        val supplement = isSupplementScreenshot
-        if (uri != null) {
-            val ocrVersion = ++ocrRequestVersion
-            selectedUri = uri
-            capturedBitmap = null
-            isOcrRunning = true
-            ocrMessage = if (supplement) "正在把补充截图文字合并到当前商品…" else "正在识别截图文字…"
-            runChineseOcr(
-                context = context,
-                uri = uri,
-                onSuccess = { text ->
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    val combined = if (supplement) {
-                        CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
-                    } else {
-                        analysisInputMethods = emptySet()
-                        text.trim()
-                    }
-                    if (combined.isNotBlank()) {
-                        inputText = combined
-                        showManualInput = true
-                        analyzeInput(combined, AnalysisInputMethod.SCREENSHOT)
-                    }
-                    isOcrRunning = false
-                    isSupplementScreenshot = false
-                    ocrMessage = when {
-                        text.isBlank() && supplement -> "补充截图没有识别到新文字，当前分析仍然保留"
-                        text.isBlank() -> "没有识别到文字，可以手动输入商品名或宣传语"
-                        supplement -> "补充截图信息已合并，并重新生成分析结果"
-                        else -> "识别完成，可以修改文字后再分析"
-                    }
-                },
-                onError = {
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    isOcrRunning = false
-                    isSupplementScreenshot = false
-                    ocrMessage = "识别失败：${it.message ?: "未知错误"}。原有文字没有被清除。"
-                }
-            )
-        } else {
-            isSupplementScreenshot = false
-        }
-    }
+        contract = ActivityResultContracts.GetContent(),
+        onResult = vm::onScreenshotPicked
+    )
 
     val officialScreenshotPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        val current = analysis
-        if (uri != null && current?.verification?.manualRecord != null) {
-            val ocrVersion = ocrRequestVersion
-            isOfficialScreenshotOcrRunning = true
-            officialScreenshotMessage = "正在本地识别官方查询截图…"
-            val requestedRegistration = current.verification.registration
-                .normalizedNumber
-                .ifBlank { current.verification.registration.rawNumber }
-            runChineseOcr(
-                context = context,
-                uri = uri,
-                onSuccess = { text ->
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    val latest = analysis
-                    val latestRegistration = latest?.let { latestAnalysis ->
-                        latestAnalysis.verification.registration.normalizedNumber.ifBlank {
-                            latestAnalysis.verification.registration.rawNumber
-                        }
-                    }
-                    if (
-                        latest != null &&
-                        latest.verification.manualRecord != null &&
-                        latestRegistration == requestedRegistration
-                    ) {
-                        val review = OfficialScreenshotAnalyzer.analyze(text, latest.verification)
-                        analysis = latest.copy(
-                            verification = ManualVerificationRecorder.attachScreenshotReview(
-                                latest.verification,
-                                review
-                            )
-                        )
-                        officialScreenshotMessage = review.summary
-                    } else {
-                        officialScreenshotMessage = "商品信息已经变化，请重新选择官方查询截图。"
-                    }
-                    isOfficialScreenshotOcrRunning = false
-                },
-                onError = { error ->
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    isOfficialScreenshotOcrRunning = false
-                    officialScreenshotMessage = "截图识别失败：${error.message ?: "未知错误"}。当前分析仍然保留。"
-                }
-            )
-        } else if (uri != null) {
-            officialScreenshotMessage = "请先打开一个官方查询入口，再导入查询结果截图。"
-        }
-    }
+        contract = ActivityResultContracts.GetContent(),
+        onResult = vm::onOfficialScreenshotPicked
+    )
 
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap != null) {
-            val ocrVersion = ++ocrRequestVersion
-            val supplement = isSupplementCapture
-            capturedBitmap = bitmap
-            selectedUri = null
-            isOcrRunning = true
-            ocrMessage = if (supplement) "正在把补拍文字合并到当前商品…" else "正在识别拍到的商品文字…"
-            runChineseOcr(
-                bitmap = bitmap,
-                onSuccess = { text ->
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    val combined = if (supplement) {
-                        CaptureGuidanceEvaluator.mergeRecognizedText(inputText, text)
-                    } else {
-                        analysisInputMethods = emptySet()
-                        text.trim()
-                    }
-                    if (combined.isNotBlank()) {
-                        inputText = combined
-                        showManualInput = true
-                        analyzeInput(combined, AnalysisInputMethod.PHOTO)
-                    }
-                    isOcrRunning = false
-                    isSupplementCapture = false
-                    ocrMessage = when {
-                        text.isBlank() && supplement -> "补拍照片没有识别到新文字，当前分析仍然保留"
-                        text.isBlank() -> "没有识别到文字，可以重新拍照或手动输入"
-                        supplement -> "补拍信息已合并，并重新生成分析结果"
-                        else -> "识别完成，已整理商品信息并生成核验建议"
-                    }
-                },
-                onError = {
-                    if (ocrVersion != ocrRequestVersion) return@runChineseOcr
-                    isOcrRunning = false
-                    isSupplementCapture = false
-                    ocrMessage = "识别失败：${it.message ?: "未知错误"}。当前文字和结果没有被清除。"
-                }
-            )
-        } else {
-            isSupplementCapture = false
-        }
-    }
+        contract = ActivityResultContracts.TakePicturePreview(),
+        onResult = vm::onPhotoTaken
+    )
 
-    if (showResetConfirmation) {
+    if (vm.showResetConfirmation) {
         AlertDialog(
-            onDismissRequest = { showResetConfirmation = false },
+            onDismissRequest = { vm.showResetConfirmation = false },
             title = { Text("要重新查一个商品吗？", fontWeight = FontWeight.Bold) },
             text = { Text("当前分析会保留在本机历史记录中，然后回到首页。大字和高对比设置会保留。") },
             confirmButton = {
                 Button(
                     onClick = {
-                        showResetConfirmation = false
+                        vm.showResetConfirmation = false
                         returnHome()
                     },
                     modifier = Modifier.heightIn(min = 52.dp)
@@ -547,19 +202,16 @@ private fun SilverGuardContent(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showResetConfirmation = false },
+                    onClick = { vm.showResetConfirmation = false },
                     modifier = Modifier.heightIn(min = 52.dp)
                 ) { Text("继续看当前结果") }
             }
         )
     }
 
-    if (showAiConsentDialog) {
+    if (vm.showAiConsentDialog) {
         AlertDialog(
-            onDismissRequest = {
-                showAiConsentDialog = false
-                pendingAiAnalysis = null
-            },
+            onDismissRequest = { vm.onAiConsent(granted = false) },
             title = { Text("使用 AI 深入分析？", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -570,31 +222,22 @@ private fun SilverGuardContent(
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        val pending = pendingAiAnalysis
-                        showAiConsentDialog = false
-                        pendingAiAnalysis = null
-                        aiConsentGranted = true
-                        pending?.let(::startAiAnalysis)
-                    },
+                    onClick = { vm.onAiConsent(granted = true) },
                     modifier = Modifier.heightIn(min = 52.dp)
                 ) { Text("同意并开始分析") }
             },
             dismissButton = {
                 TextButton(
-                    onClick = {
-                        showAiConsentDialog = false
-                        pendingAiAnalysis = null
-                    },
+                    onClick = { vm.onAiConsent(granted = false) },
                     modifier = Modifier.heightIn(min = 52.dp)
                 ) { Text("暂不使用") }
             }
         )
     }
 
-    if (showOfficialReturnDialog) {
+    if (vm.showOfficialReturnDialog) {
         AlertDialog(
-            onDismissRequest = { showOfficialReturnDialog = false },
+            onDismissRequest = { vm.showOfficialReturnDialog = false },
             title = { Text("已经完成官方查询了吗？", fontWeight = FontWeight.Bold) },
             text = {
                 Text("如果已经查到结果，建议先截图，再回到银龄安心查继续核对。")
@@ -606,7 +249,7 @@ private fun SilverGuardContent(
                 ) {
                     Button(
                         onClick = {
-                            showOfficialReturnDialog = false
+                            vm.showOfficialReturnDialog = false
                             officialScreenshotPicker.launch("image/*")
                         },
                         modifier = Modifier
@@ -615,7 +258,7 @@ private fun SilverGuardContent(
                     ) { Text("选择查询结果截图") }
                     OutlinedButton(
                         onClick = {
-                            showOfficialReturnDialog = false
+                            vm.showOfficialReturnDialog = false
                             Toast.makeText(context, "请在官方核验区逐项填写查询结果", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
@@ -623,7 +266,7 @@ private fun SilverGuardContent(
                             .heightIn(min = 54.dp)
                     ) { Text("回核验区手动记录") }
                     TextButton(
-                        onClick = { showOfficialReturnDialog = false },
+                        onClick = { vm.showOfficialReturnDialog = false },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 52.dp)
@@ -645,25 +288,15 @@ private fun SilverGuardContent(
                 Surface(color = Background, shadowElevation = 4.dp) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(
-                            onClick = ::returnHome,
-                            enabled = showHistory || analysis != null || showManualInput || inputText.isNotBlank() || isOcrRunning || isProductLoading,
+                            onClick = { returnHome() },
+                            enabled = vm.canReturnHome,
                             modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("return_home")
                         ) { Text("返回首页", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
                         Button(
                             onClick = {
-                                saveCurrentHistory()
-                                cancelProductRead()
-                                cancelAiAnalysis()
-                                speaker.stop()
-                                ocrRequestVersion += 1
-                                isOcrRunning = false
-                                isOfficialScreenshotOcrRunning = false
-                                waitingForOfficialReturn = false
-                                officialPageWasOpened = false
-                                showOfficialReturnDialog = false
+                                vm.openHistory()
                                 focusManager.clearFocus(force = true)
-                                showHistory = true
-                                coroutineScope.launch { contentScroll.scrollTo(0) }
+                                scrollToTop()
                             },
                             modifier = Modifier.weight(1f).heightIn(min = 56.dp).testTag("open_history")
                         ) { Text("历史记录", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
@@ -681,21 +314,19 @@ private fun SilverGuardContent(
                         bottom = 24.dp
                     )
             ) {
-                if (showHistory) {
+                if (vm.showHistory) {
                     HistoryScreen(
-                        entries = historyEntries,
-                        storageMessage = historyStorageMessage,
-                        onOpen = ::openHistoryEntry,
-                        onDelete = { id ->
-                            historyEntries = historyRepository.delete(id)
-                            if (activeHistoryId == id) { resetAll(); showHistory = true }
-                            persistHistory()
+                        entries = vm.historyEntries,
+                        storageMessage = vm.historyStorageMessage,
+                        onOpen = { entry ->
+                            vm.openHistoryEntry(entry)
+                            focusManager.clearFocus(force = true)
+                            scrollToTop()
                         },
+                        onDelete = vm::deleteHistoryEntry,
                         onClear = {
-                            historyEntries = historyRepository.clear()
-                            resetAll()
-                            showHistory = true
-                            persistHistory()
+                            vm.clearHistory()
+                            scrollToTop()
                         }
                     )
                 } else {
@@ -707,7 +338,7 @@ private fun SilverGuardContent(
                     onLargeTextChange = onLargeTextChange,
                     onHighContrastChange = onHighContrastChange
                 )
-                if (analysis == null) {
+                if (vm.analysis == null) {
                     Spacer(Modifier.height(16.dp))
                     HeroCard()
                     Spacer(Modifier.height(18.dp))
@@ -725,8 +356,7 @@ private fun SilverGuardContent(
                         testTag = "take_product_photo",
                         filled = true,
                         onClick = {
-                            cancelProductRead()
-                            isSupplementCapture = false
+                            vm.prepareCapture(supplement = false)
                             cameraLauncher.launch(null)
                         }
                     )
@@ -735,8 +365,7 @@ private fun SilverGuardContent(
                         text = "选择商品截图",
                         testTag = "select_product_screenshot",
                         onClick = {
-                            cancelProductRead()
-                            isSupplementScreenshot = false
+                            vm.prepareScreenshot(supplement = false)
                             imagePicker.launch("image/*")
                         }
                     )
@@ -744,17 +373,19 @@ private fun SilverGuardContent(
                     PrimaryEntryButton(
                         text = "粘贴商品链接 / 手动输入",
                         testTag = "manual_product_input",
-                        onClick = { showManualInput = true }
+                        onClick = { vm.showManualInput = true }
                     )
 
                     Spacer(Modifier.height(10.dp))
+                    val capturedBitmap = vm.capturedBitmap
+                    val selectedUri = vm.selectedUri
                     when {
                     capturedBitmap != null -> {
-                        BitmapPreview(bitmap = capturedBitmap!!)
+                        BitmapPreview(bitmap = capturedBitmap)
                         Spacer(Modifier.height(8.dp))
                     }
                     selectedUri != null -> {
-                        ImagePreview(context = context, uri = selectedUri!!)
+                        ImagePreview(context = context, uri = selectedUri)
                         Spacer(Modifier.height(8.dp))
                     }
                     }
@@ -763,7 +394,7 @@ private fun SilverGuardContent(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                     ) {
-                    if (isOcrRunning) {
+                    if (vm.isOcrRunning) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             color = Brand,
@@ -771,20 +402,14 @@ private fun SilverGuardContent(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(ocrMessage, color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
+                    Text(vm.ocrMessage, color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
                     }
 
-                    if (showManualInput || inputText.isNotBlank()) {
+                    if (vm.showManualInput || vm.inputText.isNotBlank()) {
                     Spacer(Modifier.height(14.dp))
                     OutlinedTextField(
-                        value = inputText,
-                        onValueChange = {
-                            cancelProductRead()
-                            cancelAiAnalysis()
-                            speaker.stop()
-                            analysis = null
-                            inputText = it
-                        },
+                        value = vm.inputText,
+                        onValueChange = vm::onHomeInputChange,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 190.dp)
@@ -799,13 +424,13 @@ private fun SilverGuardContent(
                     Spacer(Modifier.height(10.dp))
                     EcommerceLinkCard(detectedLinkInfo)
                     if (detectedLinkInfo.extractedUrl != null) Spacer(Modifier.height(10.dp))
-                    if (isProductLoading) {
+                    if (vm.isProductLoading) {
                         ProductLoadingCard()
                         Spacer(Modifier.height(10.dp))
                     }
                     Button(
-                        onClick = { if (inputText.isNotBlank()) analyzeInput(inputText) },
-                        enabled = inputText.isNotBlank() && !isOcrRunning && !isProductLoading,
+                        onClick = { if (vm.inputText.isNotBlank()) analyze(vm.inputText) },
+                        enabled = vm.inputText.isNotBlank() && !vm.isOcrRunning && !vm.isProductLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 60.dp)
@@ -814,7 +439,7 @@ private fun SilverGuardContent(
                         shape = RoundedCornerShape(18.dp)
                     ) {
                         Text(
-                            if (isProductLoading) "正在读取商品信息…" else "开始分析",
+                            if (vm.isProductLoading) "正在读取商品信息…" else "开始分析",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -823,147 +448,101 @@ private fun SilverGuardContent(
 
                     Spacer(Modifier.height(8.dp))
                     TextButton(
-                    onClick = { showExamples = !showExamples },
+                    onClick = { vm.showExamples = !vm.showExamples },
                     modifier = Modifier.heightIn(min = 48.dp)
                     ) {
-                    Text(if (showExamples) "收起示例" else "查看输入示例")
+                    Text(if (vm.showExamples) "收起示例" else "查看输入示例")
                     }
-                    if (showExamples) {
+                    if (vm.showExamples) {
                         ExampleButtons { sample ->
-                            inputText = sample
-                            showManualInput = true
-                            analyzeInput(sample, AnalysisInputMethod.TEXT)
+                            focusManager.clearFocus(force = true)
+                            vm.analyzeExample(sample)
                         }
                     }
                 }
 
-                analysis?.let { current ->
+                vm.analysis?.let { current ->
                     Spacer(Modifier.height(16.dp))
-                    historyStorageMessage?.let { Text(it, color = Ink, fontWeight = FontWeight.Bold) }
-                    restoredHistoryTime?.let { time ->
+                    vm.historyStorageMessage?.let { Text(it, color = Ink, fontWeight = FontWeight.Bold) }
+                    vm.restoredHistoryTime?.let { time ->
                         Card(colors = CardDefaults.cardColors(containerColor = SoftAmber, contentColor = Ink), border = CardBorder) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("历史结果 · ${historyTime(time)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.testTag("history_result_notice"))
                                 Text("这是当时保存的分析，不是刚刚重新查询。可继续补充信息，或重新分析。原照片不保留，识别文字仍在下方。", lineHeight = 23.sp)
-                                OutlinedButton(onClick = { analyzeInput(inputText) }, enabled = inputText.isNotBlank() && !isProductLoading && !isOcrRunning, modifier = Modifier.heightIn(min = 52.dp).testTag("history_reanalyze")) { Text("用当前文字重新分析") }
+                                OutlinedButton(onClick = { analyze(vm.inputText) }, enabled = vm.inputText.isNotBlank() && !vm.isProductLoading && !vm.isOcrRunning, modifier = Modifier.heightIn(min = 52.dp).testTag("history_reanalyze")) { Text("用当前文字重新分析") }
                             }
                         }
                         Spacer(Modifier.height(12.dp))
                     }
                     ResultInputComposer(
-                        inputText = inputText,
-                        inputMethods = analysisInputMethods,
-                        hasPendingTextChanges = hasPendingTextChanges,
-                        isUpdating = isOcrRunning || isProductLoading,
+                        inputText = vm.inputText,
+                        inputMethods = vm.analysisInputMethods,
+                        hasPendingTextChanges = vm.hasPendingTextChanges,
+                        isUpdating = vm.isOcrRunning || vm.isProductLoading,
                         updateMessage = when {
-                            isProductLoading -> "正在读取商品链接并更新综合结果…"
-                            isOcrRunning -> ocrMessage
+                            vm.isProductLoading -> "正在读取商品链接并更新综合结果…"
+                            vm.isOcrRunning -> vm.ocrMessage
                             else -> null
                         },
-                        onTextChange = {
-                            inputText = it
-                            hasPendingTextChanges = true
-                        },
+                        onTextChange = vm::onResultInputChange,
                         onApplyText = {
-                            if (EcommerceLinkParser.parse(inputText).extractedUrl != null) {
-                                analysisInputMethods = analysisInputMethods + AnalysisInputMethod.PRODUCT_LINK
-                            }
-                            analyzeInput(inputText, AnalysisInputMethod.TEXT)
+                            focusManager.clearFocus(force = true)
+                            vm.applyResultText()
                         },
                         onTakePhoto = {
-                            isSupplementCapture = true
+                            vm.prepareCapture(supplement = true)
                             cameraLauncher.launch(null)
                         },
                         onSelectScreenshot = {
-                            isSupplementScreenshot = true
+                            vm.prepareScreenshot(supplement = true)
                             imagePicker.launch("image/*")
                         }
                     )
                     Spacer(Modifier.height(16.dp))
                     ResultSection(
                         analysis = current,
-                        isAiConfigured = aiProvider != null,
-                        isAiAnalyzing = isAiAnalyzing,
-                        onAnalyzeWithAi = { requestAiAnalysis(analysis ?: current) },
-                        onPriceReferenceChange = { priceInput ->
-                            val latest = analysis ?: current
-                            speaker.stop()
-                            analysis = latest.copy(priceReference = PriceReferenceEvaluator.evaluate(priceInput))
-                        },
+                        isAiConfigured = vm.isAiConfigured,
+                        isAiAnalyzing = vm.isAiAnalyzing,
+                        onAnalyzeWithAi = vm::requestAiAnalysis,
+                        onPriceReferenceChange = vm::updatePriceReference,
                         onOpenOfficialSource = { source ->
-                            val latest = analysis ?: current
-                            analysis = latest.copy(
-                                verification = ManualVerificationRecorder.markSourceOpened(
-                                    latest.verification,
-                                    source
-                                )
-                            )
-                            officialScreenshotMessage = "查询完成并截图后，请返回这里继续。"
-                            val registrationNumber = latest.verification.registration
-                                .normalizedNumber
-                                .ifBlank { latest.verification.registration.rawNumber }
-                            if (registrationNumber.isNotBlank()) {
+                            vm.onOfficialSourceOpening(source)?.let { registrationNumber ->
                                 copyToClipboard(context, "注册 / 备案号", registrationNumber)
                             }
-                            waitingForOfficialReturn = true
-                            officialPageWasOpened = true
-                            if (!openUrl(context, source.url)) {
-                                waitingForOfficialReturn = false
-                                officialPageWasOpened = false
-                            }
+                            if (!openUrl(context, source.url)) vm.onOfficialSourceOpenFailed()
                         },
                         onSelectOfficialScreenshot = {
                             officialScreenshotPicker.launch("image/*")
                         },
-                        isOfficialScreenshotOcrRunning = isOfficialScreenshotOcrRunning,
-                        officialScreenshotMessage = officialScreenshotMessage,
-                        onRecordSearchOutcome = { outcome ->
-                            val latest = analysis ?: current
-                            analysis = latest.copy(
-                                verification = ManualVerificationRecorder.recordSearchOutcome(
-                                    latest.verification,
-                                    outcome
-                                )
-                            )
-                        },
-                        onRecordFinding = { field, status ->
-                            val latest = analysis ?: current
-                            analysis = latest.copy(
-                                verification = ManualVerificationRecorder.recordFinding(
-                                    latest.verification,
-                                    field,
-                                    status
-                                )
-                            )
-                        },
+                        isOfficialScreenshotOcrRunning = vm.isOfficialScreenshotOcrRunning,
+                        officialScreenshotMessage = vm.officialScreenshotMessage,
+                        onRecordSearchOutcome = vm::recordSearchOutcome,
+                        onRecordFinding = vm::recordFinding,
                         onOpenProductPage = { openUrl(context, it) },
                         onSelectScreenshot = {
-                            cancelProductRead()
-                            isSupplementScreenshot = true
+                            vm.prepareScreenshot(supplement = true, cancelProductRead = true)
                             imagePicker.launch("image/*")
                         },
-                        inputMethods = analysisInputMethods,
+                        inputMethods = vm.analysisInputMethods,
                         onSupplementPhoto = {
-                            isSupplementCapture = true
+                            vm.prepareCapture(supplement = true)
                             cameraLauncher.launch(null)
                         },
                         onSupplementScreenshot = {
-                            isSupplementScreenshot = true
+                            vm.prepareScreenshot(supplement = true)
                             imagePicker.launch("image/*")
                         },
-                        isSupplementRunning = isOcrRunning,
-                        supplementMessage = ocrMessage,
-                        onSpeakResult = {
-                            speaker.speak(SpeechSummaryBuilder.build(analysis ?: current))
-                        },
-                        onStopSpeaking = speaker::stop,
+                        isSupplementRunning = vm.isOcrRunning,
+                        supplementMessage = vm.ocrMessage,
+                        onSpeakResult = vm::speakResult,
+                        onStopSpeaking = vm::stopSpeaking,
                         isSpeaking = speaker.isSpeaking,
                         speechMessage = speaker.unavailableMessage,
-                        onReset = { showResetConfirmation = true }
+                        onReset = { vm.showResetConfirmation = true }
                     )
                 }
 
-                if (analysis == null) {
+                if (vm.analysis == null) {
                     Spacer(Modifier.height(24.dp))
                     DisclaimerCard()
                 }
@@ -977,7 +556,7 @@ private fun SilverGuardContent(
                 }
             }
 
-            analysis?.takeIf { !showHistory }?.let { current ->
+            vm.analysis?.takeIf { !vm.showHistory }?.let { current ->
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -1316,51 +895,6 @@ private fun DisclaimerCard() {
             lineHeight = 22.sp,
             fontSize = 13.sp
         )
-    }
-}
-
-private fun runChineseOcr(
-    bitmap: Bitmap,
-    onSuccess: (String) -> Unit,
-    onError: (Exception) -> Unit
-) {
-    try {
-        val image = InputImage.fromBitmap(bitmap, 0)
-        val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
-        recognizer.process(image)
-            .addOnSuccessListener { result ->
-                onSuccess(result.text)
-                recognizer.close()
-            }
-            .addOnFailureListener { error ->
-                onError(error)
-                recognizer.close()
-            }
-    } catch (error: Exception) {
-        onError(error)
-    }
-}
-
-private fun runChineseOcr(
-    context: Context,
-    uri: Uri,
-    onSuccess: (String) -> Unit,
-    onError: (Exception) -> Unit
-) {
-    try {
-        val image = InputImage.fromFilePath(context, uri)
-        val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
-        recognizer.process(image)
-            .addOnSuccessListener { result ->
-                onSuccess(result.text)
-                recognizer.close()
-            }
-            .addOnFailureListener { error ->
-                onError(error)
-                recognizer.close()
-            }
-    } catch (error: Exception) {
-        onError(error)
     }
 }
 

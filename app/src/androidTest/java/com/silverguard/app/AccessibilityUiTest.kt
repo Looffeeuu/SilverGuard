@@ -27,6 +27,8 @@ class AccessibilityUiTest {
     fun cleanTestHistory() {
         AnalysisHistoryRepository(composeRule.activity).apply { clear(); persist() }
         composeRule.activity.getSharedPreferences("silverguard_accessibility", 0).edit().clear().commit()
+        // The analysis session lives in a ViewModel that survives recreation; drop it so it reloads the cleared history.
+        composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
         composeRule.activityRule.scenario.recreate()
     }
 
@@ -141,6 +143,17 @@ class AccessibilityUiTest {
         composeRule.onNodeWithTag("history_clear").performScrollTo().performClick()
         composeRule.onNodeWithTag("history_confirm_delete").performClick()
         composeRule.onNodeWithText("打开记录").assertDoesNotExist()
+    }
+
+    @Test fun resultSurvivesRotationAndOtherConfigurationChanges() {
+        analyze("普通茶杯 转屏测试")
+        composeRule.onNodeWithTag("result_input_field").performScrollTo().performTextInput(" 未提交的补充")
+        composeRule.activityRule.scenario.recreate()
+        composeRule.onNodeWithTag("result_input_field")
+            .performScrollTo()
+            .assertTextContains("转屏测试", substring = true)
+            .assertTextContains("未提交的补充", substring = true)
+        composeRule.onNodeWithTag("take_product_photo").assertDoesNotExist()
     }
 
     @Test fun systemBackFromResultReturnsHomeWithoutExiting() {
