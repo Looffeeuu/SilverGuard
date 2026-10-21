@@ -4,6 +4,8 @@
 
 SilverGuard 使用单 Activity + Jetpack Compose。业务规则与界面分离，核心分析可以在不启动 Android UI 的情况下通过 JVM 测试验证。
 
+分析会话的状态（输入文字、分析结果、OCR 与链接读取进度、对话框、朗读）由 `SilverGuardViewModel` 持有，转屏、深色模式或系统字体变化重建页面时不会丢失。Compose 只负责界面、焦点、滚动和打开外部页面等系统交互。
+
 ```text
 Input
   ├─ camera / gallery → ML Kit OCR
@@ -28,7 +30,7 @@ Compose result UI / speech / share report / local history
 | `engine/` | 纯 Kotlin 提取器、分类器、风险规则、核验准备度与报告生成 |
 | `network/` | 受限电商网页读取和默认关闭的可选 AI Provider |
 | `parser/` | 淘宝 / 天猫公开静态信息解析，记录字段来源与置信度 |
-| `ui/` | Compose 页面、卡片、主题、朗读与系统交互 |
+| `ui/` | `SilverGuardViewModel`（会话状态与流程），Compose 页面、卡片、主题、朗读与系统交互 |
 
 ## 关键决策
 
@@ -61,7 +63,7 @@ Compose result UI / speech / share report / local history
 
 ## 可扩展方向
 
-- 将 `SilverGuardApp.kt` 中的页面状态继续迁移到 ViewModel / reducer。
+- 用 `SavedStateHandle` 保存关键状态，使系统回收后台进程后（例如拍照期间内存不足）也能恢复当前分析。
 - 为历史格式增加显式 migration，而不是只支持当前 v1 envelope。
 - 接入合法稳定的官方数据接口后，为自动结果增加来源、查询时间和原始证据快照。
 - 发布前增加真实老人可用性测试、无障碍审计和正式隐私政策。

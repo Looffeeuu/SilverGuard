@@ -3,13 +3,9 @@ package com.silverguard.app.ui
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
 internal class ResultSpeaker(context: Context) {
@@ -70,12 +66,3 @@ internal class ResultSpeaker(context: Context) {
     }
 }
 
-@Composable
-internal fun rememberResultSpeaker(): ResultSpeaker {
-    val context = LocalContext.current
-    val speaker = remember(context) { ResultSpeaker(context) }
-    DisposableEffect(speaker) {
-        onDispose { speaker.release() }
-    }
-    return speaker
-}
