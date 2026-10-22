@@ -12,10 +12,12 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.silverguard.app.data.AnalysisHistoryRepository
+import com.silverguard.app.data.FamilyContactRepository
 import com.silverguard.app.engine.CaptureGuidanceEvaluator
 import com.silverguard.app.engine.EcommerceLinkParser
 import com.silverguard.app.engine.ManualVerificationRecorder
 import com.silverguard.app.engine.OfficialScreenshotAnalyzer
+import com.silverguard.app.engine.PhoneNumbers
 import com.silverguard.app.engine.PriceReferenceEvaluator
 import com.silverguard.app.engine.RiskAnalyzer
 import com.silverguard.app.engine.SpeechSummaryBuilder
@@ -48,6 +50,7 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
     private val productResolver = TaobaoTmallProductResolver()
     private val aiProvider = AiProviderFactory.create()
     private val historyRepository = AnalysisHistoryRepository(application)
+    private val familyContactRepository = FamilyContactRepository(application)
     internal val speaker = ResultSpeaker(application)
 
     val isAiConfigured: Boolean get() = aiProvider != null
@@ -106,6 +109,9 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
     private var waitingForOfficialReturn = false
     private var officialPageWasOpened = false
     var showOfficialReturnDialog by mutableStateOf(false)
+
+    var familyPhone by mutableStateOf(familyContactRepository.load())
+        private set
 
     var showManualInput by mutableStateOf(false)
     var showExamples by mutableStateOf(false)
@@ -495,6 +501,27 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
         val latest = analysis ?: return
         speaker.stop()
         updateAnalysis(latest.copy(priceReference = PriceReferenceEvaluator.evaluate(input)))
+    }
+
+    // ---- Family contact ----
+
+    /** Saves the number if it looks like a phone number; returns false so the UI can ask again. */
+    fun saveFamilyPhone(raw: String): Boolean {
+        val number = PhoneNumbers.normalize(raw) ?: return false
+        familyPhone = number
+        persistFamilyPhone(number)
+        return true
+    }
+
+    fun clearFamilyPhone() {
+        familyPhone = null
+        persistFamilyPhone(null)
+    }
+
+    private fun persistFamilyPhone(number: String?) {
+        viewModelScope.launch {
+            runCatching { withContext(Dispatchers.IO) { familyContactRepository.save(number) } }
+        }
     }
 
     // ---- Speech ----

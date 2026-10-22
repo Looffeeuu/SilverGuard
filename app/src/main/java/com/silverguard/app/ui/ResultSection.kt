@@ -71,6 +71,10 @@ internal fun ResultSection(
     onStopSpeaking: () -> Unit,
     isSpeaking: Boolean,
     speechMessage: String?,
+    familyPhone: String?,
+    onSaveFamilyPhone: (String) -> Boolean,
+    onClearFamilyPhone: () -> Unit,
+    onDial: (String) -> Unit,
     onReset: () -> Unit
 ) {
     val guidance = remember(analysis.productInfo, inputMethods) {
@@ -88,6 +92,17 @@ internal fun ResultSection(
         onSpeakResult = onSpeakResult,
         onStopSpeaking = onStopSpeaking
     )
+
+    if (analysis.level != RiskLevel.LOW) {
+        Spacer(Modifier.height(12.dp))
+        HelpContactsCard(
+            level = analysis.level,
+            familyPhone = familyPhone,
+            onSaveFamilyPhone = onSaveFamilyPhone,
+            onClearFamilyPhone = onClearFamilyPhone,
+            onDial = onDial
+        )
+    }
 
     if (BuildConfig.SILVERGUARD_AI_ENABLED) {
         Spacer(Modifier.height(12.dp))

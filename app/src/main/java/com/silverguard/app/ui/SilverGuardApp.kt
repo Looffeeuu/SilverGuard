@@ -538,6 +538,10 @@ private fun SilverGuardContent(
                         onStopSpeaking = vm::stopSpeaking,
                         isSpeaking = speaker.isSpeaking,
                         speechMessage = speaker.unavailableMessage,
+                        familyPhone = vm.familyPhone,
+                        onSaveFamilyPhone = vm::saveFamilyPhone,
+                        onClearFamilyPhone = vm::clearFamilyPhone,
+                        onDial = { number -> openDialer(context, number) },
                         onReset = { vm.showResetConfirmation = true }
                     )
                 }
@@ -904,6 +908,15 @@ private fun openUrl(context: Context, url: String): Boolean = try {
 } catch (_: Exception) {
     Toast.makeText(context, "没有找到可以打开该页面的应用", Toast.LENGTH_LONG).show()
     false
+}
+
+/** Opens the dialer with the number filled in; the user still presses call, so no phone permission is needed. */
+private fun openDialer(context: Context, number: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
+    } catch (_: Exception) {
+        Toast.makeText(context, "这台设备不能拨打电话，请用手机拨打 $number", Toast.LENGTH_LONG).show()
+    }
 }
 
 private fun copyToClipboard(context: Context, label: String, text: String) {
