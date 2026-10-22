@@ -16,6 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import com.silverguard.app.data.AnalysisHistoryRepository
+import com.silverguard.app.data.FamilyContactRepository
 import org.junit.Before
 
 @RunWith(AndroidJUnit4::class)
@@ -26,6 +27,7 @@ class AccessibilityUiTest {
     @Before
     fun cleanTestHistory() {
         AnalysisHistoryRepository(composeRule.activity).apply { clear(); persist() }
+        FamilyContactRepository(composeRule.activity).save(null)
         composeRule.activity.getSharedPreferences("silverguard_accessibility", 0).edit().clear().commit()
         // The analysis session lives in a ViewModel that survives recreation; drop it so it reloads the cleared history.
         composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
@@ -154,6 +156,40 @@ class AccessibilityUiTest {
             .assertTextContains("转屏测试", substring = true)
             .assertTextContains("未提交的补充", substring = true)
         composeRule.onNodeWithTag("take_product_photo").assertDoesNotExist()
+    }
+
+    @Test fun helpContactsAppearOnlyForRiskyResults() {
+        analyze("普通茶杯")
+        composeRule.onNodeWithTag("help_contacts_card").assertDoesNotExist()
+        composeRule.onNodeWithTag("return_home").performClick()
+
+        analyze("量子理疗仪，根治高血压，不用吃药")
+        composeRule.onNodeWithTag("help_contacts_card").performScrollTo().assertIsDisplayed()
+        listOf("help_call_12315", "help_call_96110", "help_call_110").forEach { tag ->
+            composeRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test fun familyPhoneIsValidatedMaskedAndKeptAfterRecreation() {
+        analyze("量子理疗仪，根治高血压，不用吃药")
+        composeRule.onNodeWithTag("help_family_input").performScrollTo().performTextInput("妈妈")
+        composeRule.onNodeWithTag("help_family_save").performScrollTo().performClick()
+        composeRule.onNodeWithTag("help_call_family").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("help_family_input").performScrollTo().performTextReplacement("138 1234 5678")
+        composeRule.onNodeWithTag("help_family_save").performScrollTo().performClick()
+        composeRule.onNodeWithTag("help_call_family")
+            .performScrollTo()
+            .assertTextContains("138****5678", substring = true)
+
+        composeRule.waitUntil(5000) { FamilyContactRepository(composeRule.activity).load() == "13812345678" }
+        composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
+        composeRule.activityRule.scenario.recreate()
+        analyze("量子理疗仪，根治高血压，不用吃药")
+        composeRule.onNodeWithTag("help_call_family").performScrollTo().assertIsDisplayed()
+
+        composeRule.onNodeWithTag("help_family_clear").performScrollTo().performClick()
+        composeRule.onNodeWithTag("help_family_input").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun systemBackFromResultReturnsHomeWithoutExiting() {
