@@ -93,7 +93,13 @@ internal fun ResultSection(
         onStopSpeaking = onStopSpeaking
     )
 
-    if (analysis.level != RiskLevel.LOW) {
+    // A number that belongs to another product or company is shown up front, not hidden in details.
+    analysis.deviceRegistry?.takeIf { it.hasMismatch }?.let { check ->
+        Spacer(Modifier.height(12.dp))
+        DeviceRegistryCard(check)
+    }
+
+    if (analysis.level != RiskLevel.LOW || analysis.hasVerificationMismatch) {
         Spacer(Modifier.height(12.dp))
         HelpContactsCard(
             level = analysis.level,
@@ -199,6 +205,11 @@ internal fun ResultSection(
             onRetry = onSupplementPhoto
         )
 
+        analysis.deviceRegistry?.takeUnless { it.hasMismatch }?.let { check ->
+            Spacer(Modifier.height(12.dp))
+            DeviceRegistryCard(check)
+        }
+
         Spacer(Modifier.height(12.dp))
         PriceReferenceCard(analysis.priceReference, onPriceReferenceChange)
 
@@ -222,10 +233,10 @@ internal fun ResultSection(
 
 @Composable
 private fun ResultSummary(analysis: RiskAnalysis) {
-    val background = when (analysis.level) {
-        RiskLevel.HIGH -> SoftRed
-        RiskLevel.MEDIUM -> SoftAmber
-        RiskLevel.LOW -> SoftGreen
+    val background = when {
+        analysis.level == RiskLevel.HIGH -> SoftRed
+        analysis.level == RiskLevel.MEDIUM || analysis.hasVerificationMismatch -> SoftAmber
+        else -> SoftGreen
     }
 
     Card(
@@ -237,7 +248,7 @@ private fun ResultSummary(analysis: RiskAnalysis) {
             Text("综合结果 · ${analysis.category}", color = Muted, fontSize = 14.sp)
             Spacer(Modifier.height(6.dp))
             Text(
-                text = analysis.title,
+                text = analysis.headline,
                 modifier = Modifier.semantics { heading() },
                 fontSize = 27.sp,
                 lineHeight = 34.sp,
@@ -250,7 +261,7 @@ private fun ResultSummary(analysis: RiskAnalysis) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                     SummaryStatusRow("宣传风险", riskLevelText(analysis.level))
                     SummaryStatusRow("商品信息", analysis.productInfo.completenessLabel)
-                    SummaryStatusRow("官方核验", analysis.verification.statusSummary)
+                    SummaryStatusRow("官方核验", officialStatusSummary(analysis))
                 }
             }
 
@@ -528,6 +539,9 @@ internal fun riskSummary(analysis: RiskAnalysis): String {
     if (verification.manualRecord?.hasMismatch == true) {
         return "人工核对发现包装信息与官方页面存在不一致。建议暂停付款，先请家人一起复核编号、企业和登记用途。"
     }
+    if (analysis.deviceRegistry?.hasMismatch == true) {
+        return "包装上的注册证编号在本机登记数据中对应的是别的产品或企业。有些商品会借用他人的注册证，建议暂停付款。"
+    }
     if (verification.hasUnresolvedScreenshotMismatch) {
         return "官方查询截图辅助比对发现可能不一致。OCR 可能看错字，请暂停付款并在下方逐项人工确认。"
     }
@@ -556,6 +570,9 @@ internal fun purchaseAdvice(analysis: RiskAnalysis): String {
     if (verification.manualRecord?.hasMismatch == true) {
         return "先暂停付款。保留商品页面和包装照片，请家人一起复核不一致的字段；不要把人工勾选当成官方认证。"
     }
+    if (analysis.deviceRegistry?.hasMismatch == true) {
+        return "先暂停付款。到官方入口按编号查一次，看登记的产品名称和企业是否与包装一致；不一致时请家人一起把关。"
+    }
     if (verification.hasUnresolvedScreenshotMismatch) {
         return "先暂停付款并人工核对截图中标记的字段。OCR 的“可能不一致”只是提醒，不能直接作为真假结论。"
     }
@@ -571,6 +588,13 @@ internal fun purchaseAdvice(analysis: RiskAnalysis): String {
         RiskLevel.LOW -> "目前没有触发明显高风险词，但仍建议核对企业、价格、抽检和召回信息。普通商品没有注册号并不等于有问题。"
     }
 }
+
+private fun officialStatusSummary(analysis: RiskAnalysis): String =
+    if (analysis.deviceRegistry?.hasMismatch == true && analysis.verification.manualRecord?.hasMismatch != true) {
+        "编号登记信息不一致"
+    } else {
+        analysis.verification.statusSummary
+    }
 
 private fun riskLevelText(level: RiskLevel): String = when (level) {
     RiskLevel.HIGH -> "高"

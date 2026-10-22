@@ -28,6 +28,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Test UDI index builder
+        run: python3 -m unittest discover -s tools/udi_index
+
       - name: Run tests and build Debug APK
         run: ./gradlew testDebugUnitTest assembleDebug --no-daemon
 

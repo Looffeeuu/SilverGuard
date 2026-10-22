@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "shards": 64,
+  "dataDate": "2026-10-05",
+  "records": 4,
+  "devices": 8,
+  "sources": [
+    "synthetic_full.xml",
+    "synthetic_update.xml"
+  ],
+  "builtAt": "2026-10-22"
+}

@@ -13,8 +13,10 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.silverguard.app.data.AnalysisHistoryRepository
+import com.silverguard.app.data.DeviceRegistryIndex
 import com.silverguard.app.data.FamilyContactRepository
 import com.silverguard.app.engine.CaptureGuidanceEvaluator
+import com.silverguard.app.engine.DeviceRegistryComparator
 import com.silverguard.app.engine.EcommerceLinkParser
 import com.silverguard.app.engine.ManualVerificationRecorder
 import com.silverguard.app.engine.OfficialScreenshotAnalyzer
@@ -30,10 +32,12 @@ import com.silverguard.app.model.EvidenceMatchStatus
 import com.silverguard.app.model.OfficialSearchOutcome
 import com.silverguard.app.model.OfficialSource
 import com.silverguard.app.model.PriceReferenceInput
+import com.silverguard.app.model.RegistrationType
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.VerificationEvidenceField
 import com.silverguard.app.network.AiProviderFactory
 import com.silverguard.app.network.TaobaoTmallProductResolver
+import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,6 +63,14 @@ class SilverGuardViewModel(
     private val aiProvider = AiProviderFactory.create()
     private val historyRepository = AnalysisHistoryRepository(application)
     private val familyContactRepository = FamilyContactRepository(application)
+
+    // Opened lazily on an IO dispatcher. A downloaded index in app storage wins over a bundled one.
+    private val deviceRegistry by lazy {
+        DeviceRegistryIndex.firstAvailable(
+            DeviceRegistryIndex.directorySource(File(application.filesDir, DeviceRegistryIndex.DIRECTORY)),
+            DeviceRegistryIndex.assetSource(application.assets)
+        )
+    }
     internal val speaker = ResultSpeaker(application)
 
     val isAiConfigured: Boolean get() = aiProvider != null
@@ -258,6 +270,7 @@ class SilverGuardViewModel(
 
         if (!productResolver.canResolve(linkInfo)) {
             updateAnalysis(RiskAnalyzer.analyze(requestText))
+            checkDeviceRegistry()
             return
         }
 
@@ -268,6 +281,27 @@ class SilverGuardViewModel(
                 updateAnalysis(RiskAnalyzer.analyze(requestText, product))
                 isProductLoading = false
                 analysisJob = null
+                checkDeviceRegistry()
+            }
+        }
+    }
+
+    /** Looks a medical device number up in the local UDI index and attaches the result to the analysis. */
+    private fun checkDeviceRegistry() {
+        val current = analysis ?: return
+        val registration = current.verification.registration
+        if (registration.type != RegistrationType.MEDICAL_DEVICE || current.deviceRegistry != null) return
+        val number = registration.normalizedNumber.ifBlank { registration.rawNumber }
+        viewModelScope.launch {
+            val check = withContext(Dispatchers.IO) {
+                val dataDate = deviceRegistry.manifest?.dataDate ?: return@withContext null
+                runCatching {
+                    DeviceRegistryComparator.check(number, deviceRegistry.lookup(number), current.productInfo, dataDate)
+                }.getOrNull()
+            } ?: return@launch
+            val latest = analysis
+            if (latest != null && latest.rawText == current.rawText && latest.deviceRegistry == null) {
+                updateAnalysis(latest.copy(deviceRegistry = check))
             }
         }
     }

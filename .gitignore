@@ -29,3 +29,6 @@ build/
 Thumbs.db
 *Zone.Identifier*
 
+
+# Python
+__pycache__/

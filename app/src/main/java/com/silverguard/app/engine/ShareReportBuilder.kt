@@ -1,5 +1,6 @@
 package com.silverguard.app.engine
 
+import com.silverguard.app.model.DeviceRegistryCheck
 import com.silverguard.app.model.RiskAnalysis
 import com.silverguard.app.model.RiskLevel
 import com.silverguard.app.model.EcommerceFieldType
@@ -31,6 +32,8 @@ object ShareReportBuilder {
         val advice = when {
             analysis.verification.manualRecord?.hasMismatch == true ->
                 "人工核对发现不一致，建议暂停付款并请家人复核编号、企业和登记用途。"
+            analysis.deviceRegistry?.hasMismatch == true ->
+                "编号在本机登记数据中对应的是其他产品或企业，建议暂停付款，到官方入口核对编号是否被借用。"
             analysis.verification.hasUnresolvedScreenshotMismatch ->
                 "截图辅助比对发现可能不一致，建议暂停付款并逐项人工确认；OCR 提醒不能直接作为真假结论。"
             analysis.verification.status == VerificationStatus.NOT_FOUND ->
@@ -75,6 +78,7 @@ object ShareReportBuilder {
                 截图字段结果：$comparisons
             """.trimIndent()
         } ?: "查询截图辅助比对：尚未导入截图"
+        val registrySection = analysis.deviceRegistry?.let(::registryLine).orEmpty()
         val sourceSection = analysis.ecommerceLinkInfo
             ?.takeIf { it.isSupportedPlatform }
             ?.let { linkInfo ->
@@ -149,6 +153,7 @@ object ShareReportBuilder {
             当前状态：${analysis.verification.status.displayName}
             官方来源：$sourceNames
             自动核验时间：${analysis.verification.checkedAt ?: "尚未自动查询"}
+            $registrySection
             $screenshotSection
             $manualSection
 
@@ -164,6 +169,17 @@ object ShareReportBuilder {
             人工核对内容由用户根据官方页面记录，不代表 SilverGuard 已自动连接或验证官方数据库。
             $aiDisclaimer
         """.trimIndent()
+    }
+
+    private fun registryLine(check: DeviceRegistryCheck): String {
+        val prefix = "本机登记数据（截至 ${check.dataDate}）："
+        val record = check.record ?: return prefix + "未找到该编号。数据不覆盖全部医疗器械且有更新延迟，未找到不等于假货。"
+        val names = record.productNames.joinToString("、").ifBlank { "未登记名称" }
+        return if (check.hasMismatch) {
+            prefix + "该编号登记为「$names」，注册人/备案人为${record.holder}，与包装信息不一致，请到官方入口核对。"
+        } else {
+            prefix + "找到该编号，登记为「$names」，注册人/备案人为${record.holder}。"
+        }
     }
 
     private fun riskLevelText(level: RiskLevel): String = when (level) {
