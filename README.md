@@ -149,6 +149,7 @@ cd SilverGuard
 - [版本历程](docs/RELEASE_NOTES.md)
 - [风险规则评测集](docs/RISK_EVALUATION.md)
 - [发布构建与签名](docs/RELEASE.md)
+- [医疗器械登记数据离线核对](docs/DEVICE_REGISTRY.md)
 
 ---
 

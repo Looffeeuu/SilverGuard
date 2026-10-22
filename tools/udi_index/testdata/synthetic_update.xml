@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Synthetic data in the layout of an NMPA UDI daily update. Companies and numbers are made up.
+     Real packages seen so far only use 新增 and 更新; 删除 is covered defensively. -->
+<udid version="1.0">
+    <header frequency="daily" id="20261005233000" type="DELTA_INCREMENTAL">
+        <downloadFilePart>1</downloadFilePart>
+        <downloadFileTotalParts>1</downloadFileTotalParts>
+        <creationDate>2026-10-05 23:30:00</creationDate>
+    </header>
+    <devices>
+        <device>
+            <zxxsdycpbs>06900000000035</zxxsdycpbs>
+            <cpmctymc>颈椎牵引器</cpmctymc>
+            <ggxh>QY-1</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>苏械注准20262090002号</zczbhhzbapzbh>
+            <ylqxzcrbarmc>苏州康复器械股份有限公司</ylqxzcrbarmc>
+            <versionStauts>更新</versionStauts>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000066</zxxsdycpbs>
+            <cpmctymc>助听器</cpmctymc>
+            <ggxh>H1</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>国械注进20263460004</zczbhhzbapzbh>
+            <ylqxzcrbarmc>Example Hearing GmbH</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000059</zxxsdycpbs>
+            <cpmctymc>血糖试纸</cpmctymc>
+            <ggxh>50条/盒</ggxh>
+            <qxlb>体外诊断试剂</qxlb>
+            <zczbhhzbapzbh>粤械注准20262400003</zczbhhzbapzbh>
+            <ylqxzcrbarmc>广州示例生物有限公司</ylqxzcrbarmc>
+            <versionStauts>删除</versionStauts>
+        </device>
+    </devices>
+</udid>

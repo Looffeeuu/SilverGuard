@@ -29,7 +29,13 @@ object SpeechSummaryBuilder {
             VerificationStatus.NOT_FOUND -> "人工查询暂时没有找到，请先检查编号和查询类别"
             VerificationStatus.ERROR -> "官方页面本次无法正常查询，可以稍后重试"
         }
-        val action = when (analysis.level) {
+        val registryText = when {
+            analysis.deviceRegistry?.hasMismatch == true -> "包装上的注册证编号，在本机登记数据里对应的是别的产品或企业。"
+            else -> ""
+        }
+        val action = if (analysis.hasVerificationMismatch) {
+            "建议先不要付款，到官方入口按编号再查一次，并请家人一起核对。"
+        } else when (analysis.level) {
             RiskLevel.HIGH -> "建议先不要付款，请家人一起核对包装和官方登记信息。"
             RiskLevel.MEDIUM -> "建议先核对企业、型号、规格和登记用途，再决定是否购买。"
             RiskLevel.LOW -> "当前未发现明显高风险，但商品资质、功效和价格仍需自行核对。"
@@ -43,6 +49,6 @@ object SpeechSummaryBuilder {
         val caseText = if (analysis.relatedCases.isNotEmpty()) {
             "本地资料中有相似话术提醒，可展开详细信息查看，不代表当前商品属于案例对象。"
         } else ""
-        return "银龄安心查结果。${analysis.title}。宣传风险为${riskLevel}。$signalText。$verificationText。$aiText$priceText$caseText$action"
+        return "银龄安心查结果。${analysis.headline}。宣传风险为${riskLevel}。$signalText。$verificationText。$registryText$aiText$priceText$caseText$action"
     }
 }

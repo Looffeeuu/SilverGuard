@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Synthetic data in the layout of an NMPA UDI full release. Companies and numbers are made up. -->
+<udid version="1.0">
+    <header frequency="full" id="20261001000000" type="FULL_RELEASE">
+        <downloadFilePart>1</downloadFilePart>
+        <downloadFileTotalParts>1</downloadFileTotalParts>
+        <creationDate>2026-10-01 01:00:00</creationDate>
+    </header>
+    <devices>
+        <device>
+            <zxxsdycpbs>06900000000011</zxxsdycpbs>
+            <cpmctymc>电子血压计</cpmctymc>
+            <ggxh>U10</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>国械注准20263090001</zczbhhzbapzbh>
+            <ylqxzcrbarmc>安心医疗科技有限公司</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+            <contactList>
+                <contact>
+                    <qylxrcz></qylxrcz>
+                    <qylxryx>synthetic-contact@example.invalid</qylxryx>
+                    <qylxrdh>00000000000</qylxrdh>
+                </contact>
+            </contactList>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000028</zxxsdycpbs>
+            <cpmctymc>电子血压计</cpmctymc>
+            <ggxh>U20</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>国械注准20263090001</zczbhhzbapzbh>
+            <ylqxzcrbarmc>安心医疗科技有限公司</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000035</zxxsdycpbs>
+            <cpmctymc>颈椎牵引器</cpmctymc>
+            <ggxh>QY-1</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>苏械注准20262090002号</zczbhhzbapzbh>
+            <ylqxzcrbarmc>苏州康复器械有限公司</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000042</zxxsdycpbs>
+            <cpmctymc>医用冷敷贴</cpmctymc>
+            <ggxh>10贴/盒</ggxh>
+            <qxlb>器械</qxlb>
+            <zczbhhzbapzbh>京大械备20260001号,京大械备20260001</zczbhhzbapzbh>
+            <ylqxzcrbarmc>北京安康卫生材料有限公司</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+        </device>
+        <device>
+            <zxxsdycpbs>06900000000059</zxxsdycpbs>
+            <cpmctymc>血糖试纸</cpmctymc>
+            <ggxh>50条/盒</ggxh>
+            <qxlb>体外诊断试剂</qxlb>
+            <zczbhhzbapzbh>粤械注准20262400003</zczbhhzbapzbh>
+            <ylqxzcrbarmc>广州示例生物有限公司</ylqxzcrbarmc>
+            <versionStauts>新增</versionStauts>
+        </device>
+    </devices>
+</udid>

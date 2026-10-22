@@ -26,6 +26,16 @@ class RegistrationNumberClassifierTest {
     }
 
     @Test
+    fun recognizesCityLevelClassOneFilingNumbers() {
+        listOf("京大械备20150001号", "粤深械备20200001号", "苏苏械备20210123号").forEach { number ->
+            val result = RegistrationNumberClassifier.classify(number)
+            assertEquals(number, RegistrationType.MEDICAL_DEVICE, result.type)
+            assertEquals(number, result.normalizedNumber)
+        }
+        assertEquals("京大械备20150001号", RegistrationNumberClassifier.findCandidate("备案编号：京大械备20150001号 规格：10支"))
+    }
+
+    @Test
     fun recognizesDrugApprovalNumber() {
         val result = RegistrationNumberClassifier.classify("国药准字H20261234")
 
