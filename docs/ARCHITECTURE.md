@@ -6,6 +6,8 @@ SilverGuard 使用单 Activity + Jetpack Compose。业务规则与界面分离�
 
 分析会话的状态（输入文字、分析结果、OCR 与链接读取进度、对话框、朗读）由 `SilverGuardViewModel` 持有，转屏、深色模式或系统字体变化重建页面时不会丢失。Compose 只负责界面、焦点、滚动和打开外部页面等系统交互。
 
+如果系统在后台回收了进程（例如拍照或打开官方网页期间内存不足），`SavedStateHandle` 会带回输入文字、当前历史记录 id、补拍标记等少量字段；分析结果本身按 id 从本机历史重新载入，不放进 Bundle。
+
 ```text
 Input
   ├─ camera / gallery → ML Kit OCR
@@ -63,7 +65,6 @@ Compose result UI / speech / share report / local history
 
 ## 可扩展方向
 
-- 用 `SavedStateHandle` 保存关键状态，使系统回收后台进程后（例如拍照期间内存不足）也能恢复当前分析。
 - 为历史格式增加显式 migration，而不是只支持当前 v1 envelope。
 - 接入合法稳定的官方数据接口后，为自动结果增加来源、查询时间和原始证据快照。
 - 发布前增加真实老人可用性测试、无障碍审计和正式隐私政策。
