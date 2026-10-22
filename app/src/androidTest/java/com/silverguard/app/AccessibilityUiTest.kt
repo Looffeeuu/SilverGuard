@@ -183,9 +183,9 @@ class AccessibilityUiTest {
             .assertTextContains("138****5678", substring = true)
 
         composeRule.waitUntil(5000) { FamilyContactRepository(composeRule.activity).load() == "13812345678" }
+        // A fresh ViewModel reloads the number from disk and the open analysis from saved state.
         composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
         composeRule.activityRule.scenario.recreate()
-        analyze("量子理疗仪，根治高血压，不用吃药")
         composeRule.onNodeWithTag("help_call_family").performScrollTo().assertIsDisplayed()
 
         composeRule.onNodeWithTag("help_family_clear").performScrollTo().performClick()

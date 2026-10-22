@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -44,8 +45,15 @@ private const val HOME_OCR_MESSAGE = "拍商品或选择截图后，可在手机
 /**
  * Holds the analysis session so a screen rotation, font or dark-mode change does not drop the result,
  * a running OCR or link read, or the open dialogs. UI-only effects (focus, scrolling, intents) stay in Compose.
+ *
+ * Small session fields are also kept in [SavedStateHandle]. If Android kills the app in the background,
+ * the open analysis is reloaded from local history by its id, and a supplement photo taken meanwhile
+ * is still merged into the same product instead of starting over.
  */
-class SilverGuardViewModel(application: Application) : AndroidViewModel(application) {
+class SilverGuardViewModel(
+    application: Application,
+    savedState: SavedStateHandle
+) : AndroidViewModel(application) {
 
     private val productResolver = TaobaoTmallProductResolver()
     private val aiProvider = AiProviderFactory.create()
@@ -61,13 +69,13 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
         if (historyRepository.loadFailed) "历史文件暂时无法读取，原文件已保留。可重启应用再试，或确认清空后重新记录。" else null
     )
         private set
-    var showHistory by mutableStateOf(false)
+    var showHistory by SavedComposeState(savedState, "showHistory", false)
         private set
-    private var activeHistoryId: String? = null
-    var restoredHistoryTime by mutableStateOf<Long?>(null)
+    private var activeHistoryId by SavedComposeState<String?>(savedState, "activeHistoryId", null)
+    var restoredHistoryTime by SavedComposeState<Long?>(savedState, "restoredHistoryTime", null)
         private set
 
-    var inputText by mutableStateOf("")
+    var inputText by SavedComposeState(savedState, "inputText", "")
         private set
     var selectedUri by mutableStateOf<Uri?>(null)
         private set
@@ -75,9 +83,13 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
         private set
     var analysis by mutableStateOf<RiskAnalysis?>(null)
         private set
-    var analysisInputMethods by mutableStateOf<Set<AnalysisInputMethod>>(emptySet())
-        private set
-    var hasPendingTextChanges by mutableStateOf(false)
+    private var inputMethodNames by SavedComposeState(savedState, "inputMethods", arrayListOf<String>())
+    var analysisInputMethods: Set<AnalysisInputMethod>
+        get() = inputMethodNames.mapNotNull { name -> AnalysisInputMethod.entries.firstOrNull { it.name == name } }.toSet()
+        private set(value) {
+            inputMethodNames = ArrayList(value.map { it.name })
+        }
+    var hasPendingTextChanges by SavedComposeState(savedState, "hasPendingTextChanges", false)
         private set
 
     var isOcrRunning by mutableStateOf(false)
@@ -85,8 +97,9 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
     var ocrMessage by mutableStateOf(HOME_OCR_MESSAGE)
         private set
     private var ocrRequestVersion = 0
-    private var isSupplementCapture = false
-    private var isSupplementScreenshot = false
+    // The camera or picker may return to a freshly started process, so these must survive it.
+    private var isSupplementCapture by SavedComposeState(savedState, "isSupplementCapture", false)
+    private var isSupplementScreenshot by SavedComposeState(savedState, "isSupplementScreenshot", false)
 
     var isProductLoading by mutableStateOf(false)
         private set
@@ -106,16 +119,23 @@ class SilverGuardViewModel(application: Application) : AndroidViewModel(applicat
         private set
     var officialScreenshotMessage by mutableStateOf("")
         private set
-    private var waitingForOfficialReturn = false
-    private var officialPageWasOpened = false
+    private var waitingForOfficialReturn by SavedComposeState(savedState, "waitingForOfficialReturn", false)
+    private var officialPageWasOpened by SavedComposeState(savedState, "officialPageWasOpened", false)
     var showOfficialReturnDialog by mutableStateOf(false)
 
     var familyPhone by mutableStateOf(familyContactRepository.load())
         private set
 
-    var showManualInput by mutableStateOf(false)
+    var showManualInput by SavedComposeState(savedState, "showManualInput", false)
     var showExamples by mutableStateOf(false)
     var showResetConfirmation by mutableStateOf(false)
+
+    init {
+        // After a background kill the analysis object is gone, but its history entry is on disk.
+        activeHistoryId?.let { id ->
+            analysis = historyEntries.firstOrNull { it.id == id }?.analysis
+        }
+    }
 
     /** Whether the system back button should return home instead of leaving the app. */
     val canGoBack: Boolean
