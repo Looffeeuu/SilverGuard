@@ -11,7 +11,7 @@
 ![Version](https://img.shields.io/badge/version-0.5.0-176B4D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF?logo=kotlin&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-6.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-130%20passed-176B4D)
+![Tests](https://img.shields.io/badge/tests-167%20passed-176B4D)
 
 **Kotlin · Jetpack Compose · ML Kit OCR · Local-first**
 </div>
@@ -32,7 +32,7 @@
 | --- | --- |
 | 多种输入 | 拍摄包装、选择截图、粘贴商品链接或手动输入；多来源信息合并分析 |
 | 中文 OCR | 使用 ML Kit 在设备端识别包装与截图文字，不上传原图 |
-| 可解释风险初筛 | 本地规则识别疾病功效、夸大承诺、限时催促等话术，并展示命中原因 |
+| 可解释风险初筛 | 本地规则识别疾病功效、夸大承诺、限时催促等话术，并展示命中原因；区分否定句、法定警示语、药品适应症和用户粘贴的防骗提示，并用标注评测集防止规则退化 |
 | 商品信息结构化 | 提取商品名、品牌、生产企业、型号、规格、注册/备案号和价格 |
 | 官方核验辅助 | 分类常见注册/备案编号，匹配官方入口，记录人工核对与截图比对结果 |
 | 老人友好交互 | 大字、高对比、一键朗读、大按钮、分层结果和家人分享 |
@@ -94,8 +94,9 @@ app/src/main/java/com/silverguard/app/
 
 当前本地验收结果：
 
-- **123 项 JVM 单元测试**：提取、编号分类、官方来源、风险规则、报价、历史序列化、分享报告等
-- **7 项 Android UI 测试**：主要入口、无障碍开关、详情折叠、价格录入、返回首页、历史恢复与删除
+- **156 项 JVM 单元测试**：提取、编号分类、官方来源、风险规则、报价、历史序列化、分享报告、电话号码处理等
+- **风险规则评测集**：75 条标注样本（含反例和留出样本），当前等级一致 73 条、误报 0 条；任何指标变差测试即失败，详见 [风险规则评测集](docs/RISK_EVALUATION.md)
+- **11 项 Android UI 测试**：主要入口、无障碍开关、详情折叠、价格录入、返回首页、历史恢复与删除、转屏后保留结果、进程被回收后恢复、求助卡片与家人电话
 - 普通模式与高对比模式包含最低文字对比度测试
 - `test + assembleDebug + connectedDebugAndroidTest` 均通过
 
@@ -127,12 +128,16 @@ cd SilverGuard
 
 ## 当前状态与路线图
 
-**Current status:** v0.5.0 · Local-first MVP · AI disabled by default
+**Current status:** v0.5.0 已发布 · `main` 分支包含下一版改进（见 [版本历程](docs/RELEASE_NOTES.md)）· AI 默认关闭
 
 - [x] 老人友好交互与多来源输入
 - [x] 商品信息结构化与本地风险初筛
 - [x] 官方核验入口、人工证据记录与截图辅助比对
 - [x] 有来源的案例提示、本地报价参考与历史记录
+- [x] 风险规则评测集与基线，误报从 12 条降到 0 条
+- [x] 转屏、深色模式切换和后台进程回收后恢复当前分析
+- [x] 中高风险结果一键联系家人和官方热线
+- [x] Release 构建的代码压缩、签名配置和发布检查清单
 - [ ] 在取得稳定、合法接口后接入自动官方数据查询
 - [ ] 在成本和隐私方案明确后恢复可选 AI 语义辅助
 - [ ] 根据真实老年用户测试继续优化无障碍与异常恢复
