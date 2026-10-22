@@ -18,6 +18,13 @@ fun String.asBuildConfigString(): String =
 // Cloud AI is paused for the offline 0.5 release; existing local proxy settings are preserved.
 val silverGuardAiEnabled = silverGuardLocalProperties.getProperty("SILVERGUARD_AI_ENABLED", "false") == "true"
 
+// Release signing comes from local.properties or the environment, never from the repository.
+// Without SILVERGUARD_RELEASE_STORE_FILE the release APK is built unsigned. See docs/RELEASE.md.
+fun releaseSecret(name: String): String? =
+    (silverGuardLocalProperties.getProperty(name) ?: System.getenv(name))?.trim()?.ifEmpty { null }
+
+val releaseStoreFile = releaseSecret("SILVERGUARD_RELEASE_STORE_FILE")
+
 android {
     namespace = "com.silverguard.app"
     compileSdk = 37
@@ -46,6 +53,26 @@ android {
                 .trim() else "")
                 .asBuildConfigString()
         )
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseSecret("SILVERGUARD_RELEASE_STORE_PASSWORD")
+                keyAlias = releaseSecret("SILVERGUARD_RELEASE_KEY_ALIAS")
+                keyPassword = releaseSecret("SILVERGUARD_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     buildFeatures {
