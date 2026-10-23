@@ -121,7 +121,7 @@ class AccessibilityUiTest {
         composeRule.onNodeWithTag("home_input_field").assertDoesNotExist()
         composeRule.onNodeWithTag("result_input_field").assertDoesNotExist()
         composeRule.onNodeWithTag("take_product_photo").performScrollTo().assertIsDisplayed()
-        composeRule.waitUntil(5000) { AnalysisHistoryRepository(composeRule.activity).list().isNotEmpty() }
+        composeRule.waitUntil(5000) { historyFileContains(composeRule.activity, "历史测试") }
         composeRule.activityRule.scenario.recreate()
         composeRule.onNodeWithTag("open_history").performClick()
         composeRule.onNodeWithTag("history_search").performTextInput("毛巾")

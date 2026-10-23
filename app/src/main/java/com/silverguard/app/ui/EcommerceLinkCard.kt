@@ -60,7 +60,7 @@ internal fun EcommerceLinkCard(info: EcommerceLinkInfo) {
                 Text(
                     text = "识别到平台来源，不代表商品真假、资质或宣传已经通过官方核验。",
                     color = Muted,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     lineHeight = 19.sp
                 )
             }
@@ -78,7 +78,7 @@ private fun LinkInfoRow(label: String, value: String) {
         Text(
             text = label,
             color = Muted,
-            fontSize = 13.sp
+            fontSize = 14.sp
         )
         Text(
             text = value,

@@ -51,7 +51,7 @@ internal fun RelatedCasesCard(matches: List<RiskCaseMatch>, onOpenSource: (Strin
                 }
                 Text(case.summary, lineHeight = 24.sp)
                 Text(case.action, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp)
-                Text("来源：${case.sourceName}\n发布：${case.publishedOn}", color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
+                Text("来源：${case.sourceName}\n发布：${case.publishedOn}", color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
                 OutlinedButton(
                     onClick = { onOpenSource(case.sourceUrl) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
@@ -61,7 +61,7 @@ internal fun RelatedCasesCard(matches: List<RiskCaseMatch>, onOpenSource: (Strin
                 onClick = { showLibrary = !showLibrary },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("case_library_toggle")
             ) { Text(if (showLibrary) "只看本次匹配" else "浏览本地案例库（${RiskCaseRepository.cases.size} 条）", fontSize = 17.sp) }
-            Text("本地资料整理日期：${RiskCaseRepository.REVIEWED_ON}。摘要可离线阅读，打开来源需要联网。", color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
+            Text("本地资料整理日期：${RiskCaseRepository.REVIEWED_ON}。摘要可离线阅读，打开来源需要联网。", color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
         }
     }
 }

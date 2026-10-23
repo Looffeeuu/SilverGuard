@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -83,6 +84,8 @@ import kotlinx.coroutines.launch
 private const val PREFS_NAME = "silverguard_accessibility"
 private const val PREF_LARGE_TEXT = "large_text"
 private const val PREF_HIGH_CONTRAST = "high_contrast"
+private const val LARGE_TEXT_FACTOR = 1.18f
+private const val MAX_NON_LINEAR_FONT_SCALE = 2f
 
 @Composable
 fun SilverGuardApp(viewModel: SilverGuardViewModel) {
@@ -97,11 +100,18 @@ fun SilverGuardApp(viewModel: SilverGuardViewModel) {
         mutableStateOf(preferences.getBoolean(PREF_HIGH_CONTRAST, false))
     }
     val currentDensity = LocalDensity.current
-    val appDensity = remember(currentDensity.density, currentDensity.fontScale, largeText) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale * if (largeText) 1.18f else 1f
-        )
+    val appDensity = remember(currentDensity, largeText) {
+        if (!largeText) {
+            currentDensity
+        } else {
+            // Android's non-linear font scaling, which enlarges headings less than body text, only has
+            // tables up to 2.0; beyond that text scales linearly and headings balloon. So the app's own
+            // large-text step stops at 2.0 and adds nothing once the system font size is at its maximum.
+            Density(
+                density = currentDensity.density,
+                fontScale = minOf(currentDensity.fontScale * LARGE_TEXT_FACTOR, MAX_NON_LINEAR_FONT_SCALE)
+            )
+        }
     }
     val palette = if (highContrast) HighContrastSilverGuardColors else StandardSilverGuardColors
 
@@ -555,7 +565,7 @@ private fun SilverGuardContent(
                     "银龄安心查 · Android MVP 0.5.0 · 本地分析版",
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = Muted,
-                    fontSize = 12.sp
+                    fontSize = 14.sp
                 )
                 }
             }
@@ -695,7 +705,7 @@ private fun ResultInputComposer(
                 "照片、截图和文字会合并到同一份分析中，不会互相覆盖。",
                 modifier = Modifier.padding(top = 7.dp),
                 color = Muted,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 lineHeight = 19.sp
             )
         }
@@ -778,13 +788,21 @@ private fun PrimaryEntryButton(
 @Composable
 private fun BrandHeader() {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // Decorative logo: TalkBack would otherwise read a lone "安" before the app name.
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .background(Brand, RoundedCornerShape(14.dp)),
+                .background(Brand, RoundedCornerShape(14.dp))
+                .clearAndSetSemantics {},
             contentAlignment = Alignment.Center
         ) {
-            Text("安", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            // Sized in dp so it never outgrows the fixed 44dp box at large font settings.
+            Text(
+                "安",
+                color = Color.White,
+                fontSize = with(LocalDensity.current) { 21.dp.toSp() },
+                fontWeight = FontWeight.Bold
+            )
         }
         Spacer(Modifier.width(10.dp))
         Column {
@@ -795,7 +813,7 @@ private fun BrandHeader() {
                 fontWeight = FontWeight.Bold,
                 color = Ink
             )
-            Text("消费前，多一次核验", fontSize = 12.sp, color = Muted)
+            Text("消费前，多一次核验", fontSize = 14.sp, color = Muted)
         }
     }
 }
@@ -864,7 +882,7 @@ private fun ImagePreview(context: Context, uri: Uri) {
 @Composable
 private fun ExampleButtons(onExample: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("点一个示例体验：", color = Muted, fontSize = 13.sp)
+        Text("点一个示例体验：", color = Muted, fontSize = 14.sp)
         listOf(
             "理疗仪" to "太赫兹理疗仪 疏通血管 改善鼻炎 专家推荐 现价￥2980 型号 TD-01",
             "节电器" to "智能节电器 插上就省电40% 国家专利 仅限今天",
@@ -897,7 +915,7 @@ private fun DisclaimerCard() {
             modifier = Modifier.padding(16.dp),
             color = Ink,
             lineHeight = 22.sp,
-            fontSize = 13.sp
+            fontSize = 14.sp
         )
     }
 }

@@ -60,7 +60,7 @@ internal fun ProductSourceCard(
                 Text(
                     "商品名称来源：$titleSource",
                     color = Muted,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
             }
@@ -68,14 +68,14 @@ internal fun ProductSourceCard(
                 Text(
                     it.message,
                     color = Muted,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
             }
             Text(
                 "商品所在平台与监管部门的官方核验是两件事，请继续查看下方官方信息核验。",
                 color = Muted,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 lineHeight = 20.sp
             )
         }
@@ -92,7 +92,7 @@ private fun SourceRow(label: String, value: String) {
             .fillMaxWidth()
             .padding(vertical = 5.dp)
     ) {
-        Text(label, color = Muted, fontSize = 13.sp)
+        Text(label, color = Muted, fontSize = 14.sp)
         Text(
             value,
             color = Ink,

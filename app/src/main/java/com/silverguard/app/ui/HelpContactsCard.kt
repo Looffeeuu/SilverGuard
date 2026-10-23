@@ -160,11 +160,11 @@ internal fun HelpContactsCard(
                 ) {
                     Column(Modifier.fillMaxWidth()) {
                         Text(line.label, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                        Text(line.hint, fontSize = 13.sp, color = Muted, lineHeight = 18.sp)
+                        Text(line.hint, fontSize = 14.sp, color = Muted, lineHeight = 18.sp)
                     }
                 }
             }
-            Text("点击后会打开手机拨号界面，需要你再按一次拨打。", fontSize = 13.sp, color = Muted)
+            Text("点击后会打开手机拨号界面，需要你再按一次拨打。", fontSize = 14.sp, color = Muted)
         }
     }
 }

@@ -108,7 +108,7 @@ private fun ReadyVerificationContent(
     VerificationDetailRow("可能类型", result.registration.type.displayName)
 
     Spacer(Modifier.height(8.dp))
-    Text(result.registration.reason, color = Muted, fontSize = 13.sp, lineHeight = 20.sp)
+    Text(result.registration.reason, color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
     Spacer(Modifier.height(10.dp))
     Text(
         text = statusExplanation(result.status),
@@ -123,7 +123,7 @@ private fun ReadyVerificationContent(
     Text(
         "按钮会先复制编号，再交给浏览器打开官方来源。",
         color = Muted,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         lineHeight = 19.sp
     )
     Spacer(Modifier.height(8.dp))
@@ -143,11 +143,11 @@ private fun ReadyVerificationContent(
                 Text("复制编号并打开${source.name}", fontWeight = FontWeight.Bold)
                 Text(
                     "${source.role.displayName} · ${source.organization}",
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     color = Muted
                 )
-                Text(source.description, fontSize = 12.sp, color = Muted)
-                Text(source.queryHint, fontSize = 12.sp, color = Muted)
+                Text(source.description, fontSize = 14.sp, color = Muted)
+                Text(source.queryHint, fontSize = 14.sp, color = Muted)
             }
         }
         Spacer(Modifier.height(7.dp))
@@ -159,7 +159,7 @@ private fun ReadyVerificationContent(
         Text(
             "在官方页面查到结果后截图，返回这里选择该截图。文字只在手机本地识别。",
             color = Muted,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             lineHeight = 19.sp
         )
         Spacer(Modifier.height(8.dp))
@@ -188,7 +188,7 @@ private fun ReadyVerificationContent(
         }
         if (officialScreenshotMessage.isNotBlank()) {
             Spacer(Modifier.height(7.dp))
-            Text(officialScreenshotMessage, color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+            Text(officialScreenshotMessage, color = Muted, fontSize = 14.sp, lineHeight = 19.sp)
         }
 
         result.screenshotReview?.let { review ->
@@ -201,7 +201,7 @@ private fun ReadyVerificationContent(
         Text(
             "请以你在官方页面看到的内容为准，修正截图 OCR 可能产生的错误。",
             color = Muted,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             lineHeight = 19.sp
         )
         Spacer(Modifier.height(8.dp))
@@ -216,7 +216,7 @@ private fun ReadyVerificationContent(
     Text(
         "注意：打开入口或人工勾选都不等于 SilverGuard 已自动核验；查到登记信息也不代表广告中的所有功效得到认可。",
         color = Muted,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         lineHeight = 20.sp
     )
 }
@@ -267,7 +267,7 @@ private fun VerificationDetailRow(label: String, value: String) {
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
-        Text(label, color = Muted, fontSize = 13.sp)
+        Text(label, color = Muted, fontSize = 14.sp)
         Text(
             value,
             color = Ink,
