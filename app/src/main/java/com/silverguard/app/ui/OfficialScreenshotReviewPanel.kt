@@ -46,7 +46,7 @@ internal fun OfficialScreenshotReviewPanel(review: OfficialScreenshotReview) {
             Text(
                 "本地识别 ${review.recognizedCharacterCount} 个文字 · ${formatScreenshotTime(review.processedAt)}",
                 color = Muted,
-                fontSize = 12.sp
+                fontSize = 14.sp
             )
             Spacer(Modifier.height(10.dp))
 
@@ -57,7 +57,7 @@ internal fun OfficialScreenshotReviewPanel(review: OfficialScreenshotReview) {
             Text(
                 "截图 OCR 可能看错字。请在下方人工核对区确认，人工选择会作为最终记录。",
                 color = Muted,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 lineHeight = 18.sp
             )
         }
@@ -92,20 +92,20 @@ private fun ScreenshotComparisonRow(comparison: OfficialScreenshotComparison) {
                         comparison.status.displayName,
                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                         color = Ink,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
             comparison.expectedValue?.let { expected ->
                 Spacer(Modifier.height(5.dp))
-                Text("包装识别：$expected", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                Text("包装识别：$expected", color = Muted, fontSize = 14.sp, lineHeight = 18.sp)
             }
             comparison.detectedText?.let { detected ->
-                Text("截图识别：$detected", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                Text("截图识别：$detected", color = Muted, fontSize = 14.sp, lineHeight = 18.sp)
             }
             Spacer(Modifier.height(3.dp))
-            Text(comparison.explanation, color = Ink, fontSize = 13.sp, lineHeight = 19.sp)
+            Text(comparison.explanation, color = Ink, fontSize = 14.sp, lineHeight = 19.sp)
         }
     }
 }

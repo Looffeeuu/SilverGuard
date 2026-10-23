@@ -67,7 +67,7 @@ internal fun DeviceRegistryCard(check: DeviceRegistryCheck) {
             Text(
                 "数据来自国家药监局医疗器械唯一标识数据库，保存在本机，截至 ${check.dataDate}；不是实时查询。",
                 color = Muted,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 lineHeight = 19.sp
             )
         }

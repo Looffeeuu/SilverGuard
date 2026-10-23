@@ -51,8 +51,8 @@ internal fun ManualVerificationPanel(
         Column(Modifier.padding(15.dp)) {
             Text("把官方页面结果记下来", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Ink)
             Spacer(Modifier.height(5.dp))
-            Text("本次来源：${record.source.organization}", color = Muted, fontSize = 13.sp)
-            Text("打开时间：${formatVerificationTime(record.openedAt)}", color = Muted, fontSize = 13.sp)
+            Text("本次来源：${record.source.organization}", color = Muted, fontSize = 14.sp)
+            Text("打开时间：${formatVerificationTime(record.openedAt)}", color = Muted, fontSize = 14.sp)
             Spacer(Modifier.height(10.dp))
             Text(record.summary, color = Ink, fontWeight = FontWeight.Bold, lineHeight = 21.sp)
 
@@ -89,7 +89,7 @@ internal fun ManualVerificationPanel(
                     Text(
                         "不确定的项目可以暂时不选，不要凭印象判断。",
                         color = Muted,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         lineHeight = 19.sp
                     )
                     Spacer(Modifier.height(8.dp))
@@ -124,13 +124,13 @@ internal fun ManualVerificationPanel(
 
             record.reviewedAt?.let { reviewedAt ->
                 Spacer(Modifier.height(10.dp))
-                Text("人工记录时间：${formatVerificationTime(reviewedAt)}", color = Muted, fontSize = 13.sp)
+                Text("人工记录时间：${formatVerificationTime(reviewedAt)}", color = Muted, fontSize = 14.sp)
             }
             Spacer(Modifier.height(8.dp))
             Text(
                 "以上内容由你根据官方页面手动记录，SilverGuard 尚未自动连接官方数据库。",
                 color = Muted,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 lineHeight = 18.sp
             )
         }
@@ -154,9 +154,9 @@ private fun FindingRow(
         Column(Modifier.padding(12.dp)) {
             Text(field.displayName, fontWeight = FontWeight.Bold, color = Ink)
             expectedValue?.let {
-                Text("包装识别：$it", color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                Text("包装识别：$it", color = Muted, fontSize = 14.sp, lineHeight = 19.sp)
             }
-            Text(guidance, color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            Text(guidance, color = Muted, fontSize = 14.sp, lineHeight = 18.sp)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth()) {
                 FindingChoice(

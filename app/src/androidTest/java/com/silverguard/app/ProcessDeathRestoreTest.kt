@@ -37,7 +37,7 @@ class ProcessDeathRestoreTest {
             before.onResultInputChange("普通茶杯 进程回收测试 补充说明")
             before.prepareCapture(supplement = true)
         }
-        waitUntil { AnalysisHistoryRepository(app).list().isNotEmpty() }
+        waitUntil { historyFileContains(app, "进程回收测试") }
 
         val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
         lateinit var after: SilverGuardViewModel

@@ -90,7 +90,7 @@ internal fun AiAnalysisCard(
                     Text(
                         "点击后只发送整理过的文字和商品字段，不发送照片；手机号、邮箱等会先隐藏。",
                         color = Muted,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         lineHeight = 20.sp
                     )
                     Spacer(Modifier.height(12.dp))
@@ -127,7 +127,7 @@ private fun AnalyzingContent() {
         Text("正在理解宣传话术，请稍候…", color = Ink, fontWeight = FontWeight.SemiBold)
     }
     Spacer(Modifier.height(6.dp))
-    Text("本地分析结果会一直保留。", color = Muted, fontSize = 13.sp)
+    Text("本地分析结果会一直保留。", color = Muted, fontSize = 14.sp)
 }
 
 @Composable
@@ -136,7 +136,7 @@ private fun SuccessContent(
     showDetails: Boolean,
     onToggleDetails: () -> Unit
 ) {
-    Text("AI 补充结论", color = Muted, fontSize = 13.sp)
+    Text("AI 补充结论", color = Muted, fontSize = 14.sp)
     Text(
         insight.summary,
         color = Ink,
@@ -165,19 +165,19 @@ private fun SuccessContent(
         Text(
             "AI 判断把握：${insight.confidence.displayName} · 来源：${insight.providerName} ${insight.modelName}",
             color = Muted,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             lineHeight = 20.sp
         )
         Text(
             "分析时间：${formatAiTime(insight.analyzedAt)}",
             color = Muted,
-            fontSize = 13.sp
+            fontSize = 14.sp
         )
         Spacer(Modifier.height(6.dp))
         Text(
             "AI 可能理解错误。此结果不代表商品真假、医学诊断、行政认定或官方认证。",
             color = Muted,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             lineHeight = 20.sp
         )
     }

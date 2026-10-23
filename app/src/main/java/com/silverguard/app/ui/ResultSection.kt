@@ -273,7 +273,7 @@ private fun ResultSummary(analysis: RiskAnalysis) {
                 lineHeight = 23.sp
             )
             Spacer(Modifier.height(8.dp))
-            Text("辅助分数：${analysis.score}/100（只用于提示，不是真假结论）", color = Muted, fontSize = 13.sp)
+            Text("辅助分数：${analysis.score}/100（只用于提示，不是真假结论）", color = Muted, fontSize = 14.sp)
         }
     }
 }
@@ -318,7 +318,7 @@ private fun NextActionCard(
             }
             speechMessage?.let {
                 Spacer(Modifier.height(6.dp))
-                Text(it, color = Muted, fontSize = 13.sp)
+                Text(it, color = Muted, fontSize = 14.sp)
             }
         }
     }
@@ -391,7 +391,7 @@ private fun SupplementSuggestionCard(
             Text(
                 "这是补充建议，不操作也能继续查看当前结论。",
                 color = Muted,
-                fontSize = 13.sp
+                fontSize = 14.sp
             )
         }
     }
@@ -404,7 +404,7 @@ private fun SummaryStatusRow(label: String, value: String) {
             .fillMaxWidth()
             .padding(vertical = 5.dp)
     ) {
-        Text(label, color = Muted, fontSize = 13.sp)
+        Text(label, color = Muted, fontSize = 14.sp)
         Text(value, color = Ink, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 21.sp)
     }
 }
@@ -423,7 +423,7 @@ private fun ProductInfoSection(category: String, productInfo: ProductInfo) {
     Text(
         "以上内容由文字规则自动整理，请对照包装原文确认，不代表官方记录或资质核验结果。",
         color = Muted,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         lineHeight = 20.sp
     )
 }
@@ -435,7 +435,7 @@ private fun ProductInfoRow(label: String, value: String?) {
             .fillMaxWidth()
             .padding(vertical = 5.dp)
     ) {
-        Text(label, color = Muted, fontSize = 13.sp)
+        Text(label, color = Muted, fontSize = 14.sp)
         Text(
             text = value ?: "未识别",
             color = if (value == null) Muted else Ink,
@@ -486,10 +486,10 @@ private fun ConflictCard(title: String, matched: String, explanation: String) {
         modifier = Modifier.padding(bottom = 9.dp)
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text("重点核验", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text("重点核验", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Text(title, color = Ink, fontWeight = FontWeight.Bold, lineHeight = 22.sp)
             Spacer(Modifier.height(5.dp))
-            Text("涉及宣传：$matched", color = Muted, fontSize = 13.sp)
+            Text("涉及宣传：$matched", color = Muted, fontSize = 14.sp)
             Spacer(Modifier.height(5.dp))
             Text(explanation, lineHeight = 21.sp)
         }
@@ -506,7 +506,7 @@ private fun RiskFlagCard(title: String, matched: String, explanation: String) {
     ) {
         Column(Modifier.padding(14.dp)) {
             Text("需要留意：$title", fontWeight = FontWeight.Bold, color = Ink)
-            Text("命中：“$matched”", fontSize = 13.sp, color = Muted)
+            Text("命中：“$matched”", fontSize = 14.sp, color = Muted)
             Spacer(Modifier.height(5.dp))
             Text(explanation, lineHeight = 21.sp)
         }

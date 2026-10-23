@@ -76,7 +76,7 @@ internal fun ProductParseFallbackCard(
             Text(
                 "建议截图：① 商品标题和价格 ② 详情页宣传 ③ 商品包装参数",
                 color = Muted,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 lineHeight = 20.sp
             )
         }

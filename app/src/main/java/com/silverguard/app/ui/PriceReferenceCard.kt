@@ -64,7 +64,7 @@ internal fun PriceReferenceCard(result: PriceReferenceResult, onChange: (PriceRe
             Text(result.message, lineHeight = 24.sp)
             Text("依据：你录入的报价，不是实时市场价或官方指导价；不改变宣传风险分数。", color = Muted, fontSize = 14.sp, lineHeight = 21.sp)
             result.recordedAt?.let { time ->
-                Text("录入时间：${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(time))}", color = Muted, fontSize = 13.sp)
+                Text("录入时间：${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(time))}", color = Muted, fontSize = 14.sp)
             }
             OutlinedButton(
                 onClick = { editing = !editing },
@@ -127,7 +127,7 @@ internal fun PriceReferenceCard(result: PriceReferenceResult, onChange: (PriceRe
                     Checkbox(checked = input.sameProductConfirmed, onCheckedChange = null)
                     Text("我已核对：这些报价的商品和购买条件相同", modifier = Modifier.weight(1f), lineHeight = 24.sp)
                 }
-                Text("仅保留在本次结果中；补充材料并重新分析或重新查一个后，需要重新录入并核对报价。", color = Muted, fontSize = 13.sp, lineHeight = 21.sp)
+                Text("仅保留在本次结果中；补充材料并重新分析或重新查一个后，需要重新录入并核对报价。", color = Muted, fontSize = 14.sp, lineHeight = 21.sp)
             }
         }
     }

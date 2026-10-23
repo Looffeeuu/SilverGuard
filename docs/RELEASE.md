@@ -42,6 +42,7 @@ R8 的问题通常只在运行时出现，单元测试和 Debug 构建都发现�
 - [ ] 选择一张带中文的截图，能识别出文字（验证 ML Kit OCR）
 - [ ] `adb logcat` 中没有 `NoSuchMethodException`、`ClassNotFoundException`、`JsonSyntaxException`
 - [ ] 如果是升级发布：先装旧版本并产生历史记录，再覆盖安装新版本，历史记录仍能打开
+- [ ] 把系统字体调到最大（`adb shell settings put system font_scale 2.0`），运行 `AccessibilityAuditTest`，并打开“大字”逐页查看：按钮文字不应断行到看不清，内容不应被裁切
 
 ## R8 保留规则说明
 
