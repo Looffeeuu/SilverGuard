@@ -92,6 +92,23 @@ android {
     }
 }
 
+// A signed release must not ship the privacy policy with placeholders still in it
+// (docs/store/PRIVACY_POLICY_DRAFT.md). Unsigned builds, such as CI, are not affected.
+val checkPrivacyPolicyFilled by tasks.registering {
+    val policy = file("src/main/assets/privacy_policy.md")
+    inputs.file(policy)
+    doLast {
+        if (policy.readText(Charsets.UTF_8).contains("【待填写")) {
+            throw GradleException(
+                "app/src/main/assets/privacy_policy.md 里还有“【待填写】”。正式发布前请补全隐私政策（见 docs/store/PRIVACY_POLICY_DRAFT.md）。"
+            )
+        }
+    }
+}
+if (releaseStoreFile != null) {
+    tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkPrivacyPolicyFilled) }
+}
+
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)

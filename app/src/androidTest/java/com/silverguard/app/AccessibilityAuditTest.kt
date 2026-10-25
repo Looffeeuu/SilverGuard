@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.silverguard.app.data.AnalysisHistoryRepository
 import com.silverguard.app.data.FamilyContactRepository
 import org.junit.Assert.assertTrue
+import com.silverguard.app.ui.PrivacyConsent
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -39,6 +40,8 @@ class AccessibilityAuditTest {
         AnalysisHistoryRepository(composeRule.activity).apply { clear(); persist() }
         FamilyContactRepository(composeRule.activity).save(null)
         composeRule.activity.getSharedPreferences("silverguard_accessibility", 0).edit().clear().commit()
+        // These tests exercise the app itself; PrivacyConsentUiTest covers the consent screen.
+        composeRule.activity.let { PrivacyConsent.accept(it, PrivacyConsent.policyText(it)) }
         composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
         composeRule.activityRule.scenario.recreate()
     }
