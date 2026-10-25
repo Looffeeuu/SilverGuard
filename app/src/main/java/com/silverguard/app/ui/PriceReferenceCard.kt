@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -43,6 +44,7 @@ import java.util.Locale
 @Composable
 internal fun PriceReferenceCard(result: PriceReferenceResult, onChange: (PriceReferenceInput) -> Unit) {
     var editing by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     val input = result.input
     Card(
         modifier = Modifier.fillMaxWidth().testTag("price_reference_card"),
@@ -120,6 +122,9 @@ internal fun PriceReferenceCard(result: PriceReferenceResult, onChange: (PriceRe
                 Row(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).testTag("price_same_product")
                         .toggleable(value = input.sameProductConfirmed, role = Role.Checkbox) {
+                            // Typing is done: close the keyboard so the comparison shown at the top
+                            // of this card is not covered or scrolled away to keep a field in view.
+                            focusManager.clearFocus()
                             onChange(input.copy(sameProductConfirmed = it))
                         },
                     verticalAlignment = Alignment.CenterVertically
