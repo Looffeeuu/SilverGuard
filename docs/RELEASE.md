@@ -40,6 +40,7 @@ SILVERGUARD_RELEASE_KEY_PASSWORD=你的 key 密码
 R8 的问题通常只在运行时出现，单元测试和 Debug 构建都发现不了。安装 release 包后至少检查：
 
 - [ ] 清除 App 数据后打开，先出现隐私政策同意页；同意后进入首页，首页底部“隐私政策”能打开完整政策
+- [ ] 清除 App 数据后停在同意页不点同意，等 30 秒：`adb shell run-as com.silverguard.app ls databases` 不应出现 `com.google.android.datatransport.events`（ML Kit 的待上传统计）。升级 ML Kit 后尤其要复查
 - [ ] 首页、示例分析、结果页正常显示
 - [ ] 分析后返回首页，**完全关闭应用再打开**，历史记录能打开（验证 Gson 读取历史）
 - [ ] 选择一张带中文的截图，能识别出文字（验证 ML Kit OCR）
