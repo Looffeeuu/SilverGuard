@@ -17,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import com.silverguard.app.data.AnalysisHistoryRepository
 import com.silverguard.app.data.FamilyContactRepository
+import com.silverguard.app.ui.PrivacyConsent
 import org.junit.Before
 
 @RunWith(AndroidJUnit4::class)
@@ -30,6 +31,8 @@ class AccessibilityUiTest {
         FamilyContactRepository(composeRule.activity).save(null)
         composeRule.activity.getSharedPreferences("silverguard_accessibility", 0).edit().clear().commit()
         // The analysis session lives in a ViewModel that survives recreation; drop it so it reloads the cleared history.
+        // These tests exercise the app itself; PrivacyConsentUiTest covers the consent screen.
+        composeRule.activity.let { PrivacyConsent.accept(it, PrivacyConsent.policyText(it)) }
         composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
         composeRule.activityRule.scenario.recreate()
     }

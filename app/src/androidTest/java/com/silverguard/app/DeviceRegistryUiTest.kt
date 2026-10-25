@@ -14,6 +14,7 @@ import com.silverguard.app.engine.DeviceRegistryKey
 import java.io.File
 import java.util.zip.GZIPOutputStream
 import org.junit.After
+import com.silverguard.app.ui.PrivacyConsent
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -40,6 +41,8 @@ class DeviceRegistryUiTest {
             it.write("$key\t国械注准20263090001\t安心医疗科技有限公司\t电子血压计\t器械\n".toByteArray())
         }
         // The ViewModel opens the index once; start from a fresh one that sees this index.
+        // These tests exercise the app itself; PrivacyConsentUiTest covers the consent screen.
+        composeRule.activity.let { PrivacyConsent.accept(it, PrivacyConsent.policyText(it)) }
         composeRule.activityRule.scenario.onActivity { it.viewModelStore.clear() }
         composeRule.activityRule.scenario.recreate()
     }

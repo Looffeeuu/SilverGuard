@@ -1,5 +1,6 @@
 package com.silverguard.app.ui
 
+import android.app.Activity
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,6 +29,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -92,21 +94,47 @@ fun SilverGuardApp(viewModel: SilverGuardViewModel) {
     }
     val palette = if (highContrast) HighContrastSilverGuardColors else StandardSilverGuardColors
 
+    // Read from preferences on every (re)creation, so accepting or withdrawing elsewhere is picked up.
+    val policy = remember(context) { PrivacyConsent.policyText(context) }
+    var consentGiven by remember(policy) { mutableStateOf(PrivacyConsent.isAccepted(context, policy)) }
+    var showPolicy by rememberSaveable { mutableStateOf(false) }
+
     CompositionLocalProvider(LocalDensity provides appDensity) {
         SilverGuardPaletteTheme(palette) {
-            SilverGuardContent(
-                vm = viewModel,
-                largeText = largeText,
-                highContrast = highContrast,
-                onLargeTextChange = { enabled ->
-                    largeText = enabled
-                    preferences.edit().putBoolean(PREF_LARGE_TEXT, enabled).apply()
-                },
-                onHighContrastChange = { enabled ->
-                    highContrast = enabled
-                    preferences.edit().putBoolean(PREF_HIGH_CONTRAST, enabled).apply()
-                }
-            )
+            when {
+                showPolicy -> PrivacyPolicyScreen(
+                    policy = policy,
+                    canWithdraw = consentGiven,
+                    onBack = { showPolicy = false },
+                    onWithdraw = {
+                        PrivacyConsent.withdraw(context)
+                        consentGiven = false
+                        showPolicy = false
+                    }
+                )
+                !consentGiven -> ConsentScreen(
+                    onAccept = {
+                        PrivacyConsent.accept(context, policy)
+                        consentGiven = true
+                    },
+                    onShowPolicy = { showPolicy = true },
+                    onExit = { (context as? Activity)?.finish() }
+                )
+                else -> SilverGuardContent(
+                    vm = viewModel,
+                    largeText = largeText,
+                    highContrast = highContrast,
+                    onLargeTextChange = { enabled ->
+                        largeText = enabled
+                        preferences.edit().putBoolean(PREF_LARGE_TEXT, enabled).apply()
+                    },
+                    onHighContrastChange = { enabled ->
+                        highContrast = enabled
+                        preferences.edit().putBoolean(PREF_HIGH_CONTRAST, enabled).apply()
+                    },
+                    onShowPrivacyPolicy = { showPolicy = true }
+                )
+            }
         }
     }
 }
@@ -121,7 +149,8 @@ private fun SilverGuardContent(
     largeText: Boolean,
     highContrast: Boolean,
     onLargeTextChange: (Boolean) -> Unit,
-    onHighContrastChange: (Boolean) -> Unit
+    onHighContrastChange: (Boolean) -> Unit,
+    onShowPrivacyPolicy: () -> Unit
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -274,6 +303,13 @@ private fun SilverGuardContent(
                             color = Muted,
                             fontSize = 14.sp
                         )
+                        TextButton(
+                            onClick = onShowPrivacyPolicy,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .heightIn(min = 48.dp)
+                                .testTag("privacy_policy_link")
+                        ) { Text("隐私政策", fontSize = 16.sp) }
                     }
                 }
 
