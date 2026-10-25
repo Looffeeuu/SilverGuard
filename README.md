@@ -100,7 +100,7 @@ app/src/main/java/com/silverguard/app/
 - 普通模式与高对比模式包含最低文字对比度测试
 - `test + assembleDebug + connectedDebugAndroidTest` 均通过
 
-GitHub Actions 会在每次提交和 Pull Request 上运行单元测试、构建 Debug APK，并保留构建产物。
+GitHub Actions 会在每次提交和 Pull Request 上运行单元测试、构建 Debug 和 Release APK，并在 Android 模拟器上运行全部 UI 测试。
 
 ## 当前边界
 

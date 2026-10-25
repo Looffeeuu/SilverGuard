@@ -61,7 +61,7 @@ Compose result UI / speech / share report / local history
 - 业务规则优先写成无 Android 依赖的纯 Kotlin 组件，并由 JVM 单元测试覆盖。
 - Compose UI 测试覆盖首页入口、无障碍设置、结果折叠、报价录入、首页返回和历史恢复。
 - 颜色对比度由测试计算，避免仅靠人工观察。
-- GitHub Actions 运行 JVM 测试并构建 Debug APK；设备 UI 测试在本地模拟器执行。
+- GitHub Actions 运行 JVM 测试，构建 Debug 和 Release APK，并在另一个并行任务里用 API 34 模拟器运行全部 UI 测试；失败时会上传测试报告。
 
 ## 可扩展方向
 
