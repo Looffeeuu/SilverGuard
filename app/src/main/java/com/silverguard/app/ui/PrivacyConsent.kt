@@ -15,7 +15,9 @@ internal object PrivacyConsent {
     fun policyText(context: Context): String =
         context.assets.open(POLICY_ASSET).bufferedReader(Charsets.UTF_8).use { it.readText() }
 
-    fun checksum(policy: String): Long = CRC32().apply { update(policy.toByteArray(Charsets.UTF_8)) }.value
+    /** Line endings depend on the build machine's git settings, so they must not change the checksum. */
+    fun checksum(policy: String): Long =
+        CRC32().apply { update(policy.replace("\r\n", "\n").toByteArray(Charsets.UTF_8)) }.value
 
     fun isAccepted(context: Context, policy: String): Boolean =
         prefs(context).getLong(KEY_ACCEPTED, -1L) == checksum(policy)
